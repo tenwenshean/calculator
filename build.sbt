@@ -1,9 +1,14 @@
-name := "ScalaCalculator"
 
-version := "0.1"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 
-scalaVersion := "2.12.0"
+ThisBuild / scalaVersion := "2.12.0"
 
-libraryDependencies ++= Seq(
-  "org.scala-lang.modules" %% "scala-swing" % "2.1.1"
-)
+lazy val root = (project in file("."))
+  .settings(
+    name := "Calculator",
+    libraryDependencies ++= Seq(
+      "org.scala-lang.modules" %% "scala-swing" % "2.1.1"
+    )
+
+  )
+

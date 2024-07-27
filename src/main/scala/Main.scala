@@ -140,32 +140,42 @@ object Calculator extends SimpleSwingApplication {
             val minValue = step.min
             val width = size.width / step.length
 
-            g.setFont(new Font("Arial", Font.BOLD, 16))
+            g.setFont(new Font("Arial", Font.BOLD, 14))
 
             for (i <- step.indices) {
               val heightRatio = (step(i) - minValue).toDouble / (maxValue - minValue).max(1)
-              val height = (heightRatio * (size.height - 100)).toInt.max(40)
+              val height = (heightRatio * (size.height - 120)).toInt.max(40)  // Reduced max height to make room for position labels
 
               g.setColor(new Color(100, 149, 237))
-              g.fillRect(i * width, size.height - height, width - 1, height)
+              g.fillRect(i * width, size.height - height - 20, width - 1, height)  // Moved up by 20 pixels
               g.setColor(Color.BLACK)
-              g.drawRect(i * width, size.height - height, width - 1, height)
+              g.drawRect(i * width, size.height - height - 20, width - 1, height)  // Moved up by 20 pixels
 
-              val numberStr = step(i).toString
+              // Draw the value inside the bar
+              val valueStr = step(i).toString
               val fontMetrics = g.getFontMetrics
-              val numberWidth = fontMetrics.stringWidth(numberStr)
-              val numberHeight = fontMetrics.getHeight
+              val valueWidth = fontMetrics.stringWidth(valueStr)
+              val valueHeight = fontMetrics.getHeight
 
-              val x = i * width + (width - numberWidth) / 2
-              val y = size.height - (height / 2) + (numberHeight / 2)
+              val valueX = i * width + (width - valueWidth) / 2
+              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20  // Moved up by 20 pixels
 
               g.setColor(Color.WHITE)
               for (dx <- -1 to 1; dy <- -1 to 1) {
-                g.drawString(numberStr, x + dx, y + dy)
+                g.drawString(valueStr, valueX + dx, valueY + dy)
               }
 
               g.setColor(Color.BLACK)
-              g.drawString(numberStr, x, y)
+              g.drawString(valueStr, valueX, valueY)
+
+              // Draw the array position below the bar
+              val positionStr = i.toString
+              val positionWidth = fontMetrics.stringWidth(positionStr)
+              val positionX = i * width + (width - positionWidth) / 2
+              val positionY = size.height - 5  // 5 pixels from the bottom
+
+              g.setColor(Color.BLACK)
+              g.drawString(positionStr, positionX, positionY)
             }
           }
         }

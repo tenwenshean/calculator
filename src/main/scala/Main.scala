@@ -107,6 +107,8 @@ object Calculator extends SimpleSwingApplication {
         }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
       }
+
+
       listenTo(sortingButton, dataStructuresButton, graphButton)
       reactions += {
         case ButtonClicked(`sortingButton`) => showSortingMenu()
@@ -118,9 +120,28 @@ object Calculator extends SimpleSwingApplication {
     }
 
 
-      /*val inputField = new TextField {
+    def showSortingMenu(): Unit = {
+      val bubbleSortButton = new Button("Bubble Sort")
+
+      contents = new BorderPanel {
+        layout(new GridPanel(2,1){
+          contents += bubbleSortButton
+          contents += new Label("Select a sorting algorithm")
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+      listenTo(bubbleSortButton)
+      reactions += {
+        case ButtonClicked(`bubbleSortButton`) => showBubbleSort()
+      }
+
+      revalidate()
+    }
+
+    def showBubbleSort(): Unit = {
+      val inputField = new TextField {
         columns = 30
-      }*/
+      }
       val sortButton = new Button("Start Bubble Sort")
       val previousButton = new Button("Previous")
       val nextButton = new Button("Next")
@@ -254,6 +275,24 @@ object Calculator extends SimpleSwingApplication {
 
       revalidate()
     }
+
+    def showDataStructuresMenu(): Unit = {
+      contents = new BorderPanel {
+        layout(new Label("Data Struture Menu - To be implemented")) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+      revalidate()
+    }
+
+    def showGraphMenu(): Unit = {
+      contents = new BorderPanel {
+        layout(new Label("Graph Menu - To be implemented")) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+      revalidate()
+    }
+
+
 
     def showDiscreteMathMenu(): Unit = {
       contents = new BorderPanel {

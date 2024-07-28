@@ -95,9 +95,32 @@ object Calculator extends SimpleSwingApplication {
 
     // Updated Data Structures and Algorithms Menu
     def showDataStructuresAndAlgorithmsMenu(): Unit = {
-      val inputField = new TextField {
-        columns = 30
+      val sortingButton = new Button("Sorting")
+      val dataStructuresButton = new Button("DataStructure")
+      val graphButton = new Button("Graph")
+
+      contents = new BorderPanel {
+        layout(new GridPanel(3, 1) {
+          contents += sortingButton
+          contents += dataStructuresButton
+          contents += graphButton
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
       }
+      listenTo(sortingButton, dataStructuresButton, graphButton)
+      reactions += {
+        case ButtonClicked(`sortingButton`) => showSortingMenu()
+        case ButtonClicked(`dataStructuresButton`) => showDataStructuresMenu()
+        case ButtonClicked(`graphButton`) => showGraphMenu()
+      }
+
+      revalidate()
+    }
+
+
+      /*val inputField = new TextField {
+        columns = 30
+      }*/
       val sortButton = new Button("Start Bubble Sort")
       val previousButton = new Button("Previous")
       val nextButton = new Button("Next")

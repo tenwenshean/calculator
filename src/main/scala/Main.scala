@@ -1,3 +1,5 @@
+import Calculator.listenTo
+
 import scala.swing._
 import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
@@ -277,12 +279,136 @@ object Calculator extends SimpleSwingApplication {
     }
 
     def showDataStructuresMenu(): Unit = {
+      val stackButton = new Button("Stack Visualization")
+
       contents = new BorderPanel {
-        layout(new Label("Data Struture Menu - To be implemented")) = BorderPanel.Position.Center
+        layout(new GridPanel(2,1){
+          contents += stackButton
+          contents += new Label("Select a data structure")
+        }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
+
       }
+      listenTo(stackButton)
+      reactions += {
+        case ButtonClicked(`stackButton`) => showStackVisualization()
+      }
+
       revalidate()
     }
+
+    def showStackVisualization(): Unit = {
+      var stack: List[Int] = List()
+      val inputField = new TextField { columns = 10 }
+      val pushButton = new Button("Push")
+      val popButton = new Button("Pop")
+      val clearButton = new Button("Clear")
+      val resultLabel = new Label("Stack operations will be shown here")
+
+      val stackPanel = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+          val boxWidth = 60
+          val boxHeight = 60
+          var startX = 20  // Starting X position
+          val startY = (size.height - boxHeight) / 2 - 20  // Centered Y position, moved up to make room for position labels
+
+          g.setFont(new Font("Arial", Font.BOLD, 14))
+
+          stack.zipWithIndex.foreach { case (item, index) =>
+            g.setColor(new Color(100, 149, 237))
+            g.fillRect(startX, startY, boxWidth, boxHeight)
+            g.setColor(Color.BLACK)
+            g.drawRect(startX, startY, boxWidth, boxHeight)
+
+            val itemStr = item.toString
+            val fontMetrics = g.getFontMetrics
+            val textWidth = fontMetrics.stringWidth(itemStr)
+            val textHeight = fontMetrics.getHeight
+            g.drawString(itemStr, startX + (boxWidth - textWidth) / 2, startY + boxHeight - (boxHeight - textHeight) / 2)
+
+            // Draw array position below the box
+            val positionStr = index.toString
+            val positionWidth = fontMetrics.stringWidth(positionStr)
+            g.drawString(positionStr, startX + (boxWidth - positionWidth) / 2, startY + boxHeight + 20)
+
+            startX += boxWidth + 5  // Move right for the next box
+          }
+
+          // Draw arrow pointing to the right side of the rightmost element
+          if (stack.nonEmpty) {
+            g.setColor(Color.RED)
+            val arrowX = startX - 5  // Just to the right of the last box
+            val arrowY = startY + boxHeight / 2
+            val arrowLength = 30
+
+            // Horizontal line
+            g.drawLine(arrowX, arrowY, arrowX + arrowLength, arrowY)
+
+            // Arrowhead
+            g.drawLine(arrowX + arrowLength, arrowY, arrowX + arrowLength - 5, arrowY - 5)
+            g.drawLine(arrowX + arrowLength, arrowY, arrowX + arrowLength - 5, arrowY + 5)
+
+            // "Top" label
+            g.drawString("Top", arrowX + arrowLength + 5, arrowY + 5)
+          }
+        }
+      }
+
+      def updateStackVisualization(): Unit = {
+        stackPanel.repaint()
+        resultLabel.text = s"Current stack: ${stack.reverse.mkString(", ")}"
+      }
+
+      contents = new BorderPanel {
+        layout(new GridPanel(6, 1) {
+          contents += new Label("Enter a number to push onto the stack:")
+          contents += inputField
+          contents += new FlowPanel(pushButton, popButton, clearButton)
+          contents += stackPanel
+          contents += resultLabel
+          contents += new Label("Note: Stack grows from left to right. Rightmost element is the top.")
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(pushButton, popButton, clearButton)
+      reactions += {
+        case ButtonClicked(`pushButton`) =>
+          try {
+            val num = inputField.text.toInt
+            stack = stack :+ num  // Append to the end of the list
+            resultLabel.text = s"Pushed $num onto the stack"
+            inputField.text = ""
+            updateStackVisualization()
+          } catch {
+            case _: NumberFormatException =>
+              resultLabel.text = "Invalid input. Please enter a valid integer."
+          }
+
+        case ButtonClicked(`popButton`) =>
+          stack match {
+            case init :+ last =>
+              stack = init
+              resultLabel.text = s"Popped $last from the stack"
+              updateStackVisualization()
+            case Nil =>
+              resultLabel.text = "Cannot pop from an empty stack"
+          }
+
+        case ButtonClicked(`clearButton`) =>
+          stack = List()
+          resultLabel.text = "Stack cleared"
+          updateStackVisualization()
+      }
+      updateStackVisualization()
+      revalidate()
+    }
+
 
     def showGraphMenu(): Unit = {
       contents = new BorderPanel {

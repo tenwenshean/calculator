@@ -1,33 +1,35 @@
 import Calculator.listenTo
 
+import scala.collection.mutable
 import scala.swing._
 import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
-import scala.swing.MenuBar.NoMenuBar.revalidate
+import scala.swing.MenuBar.NoMenuBar.{contents, revalidate}
 
 object Calculator extends SimpleSwingApplication {
 
   def top = new MainFrame {
     title = "Scala Calculator"
-    preferredSize = new Dimension(600, 700)  // Increased overall size
+    preferredSize = new Dimension(600, 700) // Increased overall size
 
     // Main screen buttons
     val normalCalcButton = new Button("Normal Calculation")
     val dataStructButton = new Button("Data Structures and Algorithms")
-    val discreteMathButton = new Button("Simple Discrete Math")
+    val graphVisualizationButton = new Button("Graph Visualization")
 
     val mainPanel = new GridPanel(3, 1) {
       contents += normalCalcButton
       contents += dataStructButton
-      contents += discreteMathButton
-      preferredSize = new Dimension(600, 700)  // Adjusted size
+      contents += graphVisualizationButton
+      preferredSize = new Dimension(600, 700) // Adjusted size
     }
+
 
     // Calculator UI elements
     val display = new TextField {
       columns = 10
       editable = false
-      preferredSize = new Dimension(580, 50)  // Adjusted width
+      preferredSize = new Dimension(580, 50) // Adjusted width
     }
 
     val buttons = List(
@@ -46,7 +48,7 @@ object Calculator extends SimpleSwingApplication {
 
     val buttonPanel = new GridPanel(5, 4) {
       buttons.foreach(contents += _)
-      preferredSize = new Dimension(580, 300)  // Adjusted width
+      preferredSize = new Dimension(580, 300) // Adjusted width
     }
 
     // Back button
@@ -65,9 +67,9 @@ object Calculator extends SimpleSwingApplication {
             showDataStructuresAndAlgorithmsMenu()
           }
         }
-        contents += new MenuItem("Simple Discrete Math") {
-          action = Action("Simple Discrete Math") {
-            showDiscreteMathMenu()
+        contents += new MenuItem("Graph Visualization") {
+          action = Action("Graph Visualization") {
+            showGraphVisualizationMenu()
           }
         }
         contents += new MenuItem("Exit") {
@@ -126,7 +128,7 @@ object Calculator extends SimpleSwingApplication {
       val bubbleSortButton = new Button("Bubble Sort")
 
       contents = new BorderPanel {
-        layout(new GridPanel(2,1){
+        layout(new GridPanel(2, 1) {
           contents += bubbleSortButton
           contents += new Label("Select a sorting algorithm")
         }) = BorderPanel.Position.Center
@@ -151,7 +153,7 @@ object Calculator extends SimpleSwingApplication {
       val explanationLabel = new Label("Explanation will appear here")
 
       var numbers: Array[Int] = Array()
-      var sortingSteps: List[(Array[Int], String)] = List()  // Now includes explanations
+      var sortingSteps: List[(Array[Int], String)] = List() // Now includes explanations
       var currentStep = 0
 
       def bubbleSort(arr: Array[Int]): List[(Array[Int], String)] = {
@@ -163,12 +165,12 @@ object Calculator extends SimpleSwingApplication {
               val temp = arr(j)
               arr(j) = arr(j + 1)
               arr(j + 1) = temp
-              steps = (arr.clone(), s"Swapped ${arr(j)} and ${arr(j+1)} at positions $j and ${j+1}") :: steps
+              steps = (arr.clone(), s"Swapped ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}") :: steps
             } else {
-              steps = (arr.clone(), s"Compared ${arr(j)} and ${arr(j+1)} at positions $j and ${j+1}, no swap needed") :: steps
+              steps = (arr.clone(), s"Compared ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}, no swap needed") :: steps
             }
           }
-          steps = (arr.clone(), s"Completed pass ${i + 1}. Largest unsorted element (${arr(n-i-1)}) is now in its correct position.") :: steps
+          steps = (arr.clone(), s"Completed pass ${i + 1}. Largest unsorted element (${arr(n - i - 1)}) is now in its correct position.") :: steps
         }
         steps.reverse
       }
@@ -190,12 +192,12 @@ object Calculator extends SimpleSwingApplication {
 
             for (i <- step.indices) {
               val heightRatio = (step(i) - minValue).toDouble / (maxValue - minValue).max(1)
-              val height = (heightRatio * (size.height - 120)).toInt.max(40)  // Reduced max height to make room for position labels
+              val height = (heightRatio * (size.height - 120)).toInt.max(40) // Reduced max height to make room for position labels
 
               g.setColor(new Color(100, 149, 237))
-              g.fillRect(i * width, size.height - height - 20, width - 1, height)  // Moved up by 20 pixels
+              g.fillRect(i * width, size.height - height - 20, width - 1, height) // Moved up by 20 pixels
               g.setColor(Color.BLACK)
-              g.drawRect(i * width, size.height - height - 20, width - 1, height)  // Moved up by 20 pixels
+              g.drawRect(i * width, size.height - height - 20, width - 1, height) // Moved up by 20 pixels
 
               // Draw the value inside the bar
               val valueStr = step(i).toString
@@ -204,7 +206,7 @@ object Calculator extends SimpleSwingApplication {
               val valueHeight = fontMetrics.getHeight
 
               val valueX = i * width + (width - valueWidth) / 2
-              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20  // Moved up by 20 pixels
+              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20 // Moved up by 20 pixels
 
               g.setColor(Color.WHITE)
               for (dx <- -1 to 1; dy <- -1 to 1) {
@@ -218,7 +220,7 @@ object Calculator extends SimpleSwingApplication {
               val positionStr = i.toString
               val positionWidth = fontMetrics.stringWidth(positionStr)
               val positionX = i * width + (width - positionWidth) / 2
-              val positionY = size.height - 5  // 5 pixels from the bottom
+              val positionY = size.height - 5 // 5 pixels from the bottom
 
               g.setColor(Color.BLACK)
               g.drawString(positionStr, positionX, positionY)
@@ -228,7 +230,7 @@ object Calculator extends SimpleSwingApplication {
       }
 
       contents = new BorderPanel {
-        layout(new GridPanel(7, 1) {  // Increased to 7 to accommodate the explanation label
+        layout(new GridPanel(7, 1) { // Increased to 7 to accommodate the explanation label
           contents += new Label("Enter up to 20 numbers separated by spaces:")
           contents += inputField
           contents += sortButton
@@ -282,7 +284,7 @@ object Calculator extends SimpleSwingApplication {
       val stackButton = new Button("Stack Visualization")
 
       contents = new BorderPanel {
-        layout(new GridPanel(2,1){
+        layout(new GridPanel(2, 1) {
           contents += stackButton
           contents += new Label("Select a data structure")
         }) = BorderPanel.Position.Center
@@ -299,7 +301,9 @@ object Calculator extends SimpleSwingApplication {
 
     def showStackVisualization(): Unit = {
       var stack: List[Int] = List()
-      val inputField = new TextField { columns = 10 }
+      val inputField = new TextField {
+        columns = 10
+      }
       val pushButton = new Button("Push")
       val popButton = new Button("Pop")
       val clearButton = new Button("Clear")
@@ -314,8 +318,8 @@ object Calculator extends SimpleSwingApplication {
 
           val boxWidth = 60
           val boxHeight = 60
-          var startX = 20  // Starting X position
-          val startY = (size.height - boxHeight) / 2 - 20  // Centered Y position, moved up to make room for position labels
+          var startX = 20 // Starting X position
+          val startY = (size.height - boxHeight) / 2 - 20 // Centered Y position, moved up to make room for position labels
 
           g.setFont(new Font("Arial", Font.BOLD, 14))
 
@@ -336,13 +340,13 @@ object Calculator extends SimpleSwingApplication {
             val positionWidth = fontMetrics.stringWidth(positionStr)
             g.drawString(positionStr, startX + (boxWidth - positionWidth) / 2, startY + boxHeight + 20)
 
-            startX += boxWidth + 5  // Move right for the next box
+            startX += boxWidth + 5 // Move right for the next box
           }
 
           // Draw arrow pointing to the right side of the rightmost element
           if (stack.nonEmpty) {
             g.setColor(Color.RED)
-            val arrowX = startX - 5  // Just to the right of the last box
+            val arrowX = startX - 5 // Just to the right of the last box
             val arrowY = startY + boxHeight / 2
             val arrowLength = 30
 
@@ -381,7 +385,7 @@ object Calculator extends SimpleSwingApplication {
         case ButtonClicked(`pushButton`) =>
           try {
             val num = inputField.text.toInt
-            stack = stack :+ num  // Append to the end of the list
+            stack = stack :+ num // Append to the end of the list
             resultLabel.text = s"Pushed $num onto the stack"
             inputField.text = ""
             updateStackVisualization()
@@ -419,17 +423,142 @@ object Calculator extends SimpleSwingApplication {
     }
 
 
+    def showGraphVisualizationMenu(): Unit = {
+      val inOrderTraversalButton = new Button("In-Order Tree Traversal")
 
-    def showDiscreteMathMenu(): Unit = {
       contents = new BorderPanel {
-        layout(new Label("Simple Discrete Math Menu")) = BorderPanel.Position.Center
+        layout(new GridPanel(1, 1) {
+          contents += inOrderTraversalButton
+        }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
       }
+
+      listenTo(inOrderTraversalButton)
+      reactions += {
+        case ButtonClicked(`inOrderTraversalButton`) => showInOrderTraversal()
+      }
+
       revalidate()
     }
 
+    def showInOrderTraversal(): Unit = {
+      val inputField = new TextField {
+        columns = 30
+      }
+      val traverseButton = new Button("Start In-Order Traversal")
+      val resultLabel = new Label("Enter up to 15 numbers and click 'Start In-Order Traversal'")
+      val explanationLabel = new Label("Explanation will appear here")
+
+      var numbers: Array[Int] = Array()
+      var traversalResult: List[Int] = List()
+
+      contents = new BorderPanel {
+        layout(new GridPanel(6, 1) {
+          contents += new Label("Enter up to 15 numbers separated by spaces:")
+          contents += inputField
+          contents += traverseButton
+          contents += resultLabel
+          contents += explanationLabel
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(traverseButton)
+      reactions += {
+        case ButtonClicked(`traverseButton`) =>
+          try {
+            numbers = inputField.text.split(" ").map(_.trim.toInt).take(15)
+            if (numbers.length > 15) {
+              resultLabel.text = "Only the first 15 numbers were used."
+            } else {
+              resultLabel.text = s"Processing ${numbers.length} numbers."
+            }
+            val root = buildTree(numbers)
+            traversalResult = inOrderTraversal(root)
+            explanationLabel.text = s"In-Order Traversal Result: ${traversalResult.mkString(", ")}"
+            drawTree(root)
+          } catch {
+            case _: NumberFormatException =>
+              resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
+          }
+      }
+
+      def buildTree(arr: Array[Int]): TreeNode = {
+        var root: TreeNode = null
+        for (num <- arr) {
+          root = insert(root, num)
+        }
+        root
+      }
+
+      def insert(node: TreeNode, value: Int): TreeNode = {
+        if (node == null) {
+          new TreeNode(value)
+        } else {
+          if (value < node.value) {
+            node.left = insert(node.left, value)
+          } else {
+            node.right = insert(node.right, value)
+          }
+          node
+        }
+      }
+
+      def inOrderTraversal(node: TreeNode): List[Int] = {
+        if (node == null) {
+          List()
+        } else {
+          inOrderTraversal(node.left) ++ List(node.value) ++ inOrderTraversal(node.right)
+        }
+      }
+
+      def drawTree(root: TreeNode): Unit = {
+        val treePanel = new Panel {
+          preferredSize = new Dimension(800, 600)
+
+          override def paintComponent(g: Graphics2D): Unit = {
+            super.paintComponent(g)
+            if (root != null) {
+              drawNode(g, root, 400, 30, 200)
+            }
+          }
+
+          def drawNode(g: Graphics2D, node: TreeNode, x: Int, y: Int, offset: Int): Unit = {
+            g.drawOval(x - 15, y - 15, 30, 30)
+            g.drawString(node.value.toString, x - 5, y + 5)
+            if (node.left != null) {
+              g.drawLine(x, y, x - offset, y + 50)
+              drawNode(g, node.left, x - offset, y + 50, offset / 2)
+            }
+            if (node.right != null) {
+              g.drawLine(x, y, x + offset, y + 50)
+              drawNode(g, node.right, x + offset, y + 50, offset / 2)
+            }
+          }
+        }
+        contents = new BorderPanel {
+          layout(new BorderPanel {
+            layout(treePanel) = BorderPanel.Position.Center
+          }) = BorderPanel.Position.Center
+          layout(backButton) = BorderPanel.Position.South
+        }
+        revalidate()
+      }
+
+      revalidate()
+    }
+
+    class TreeNode(var value: Int) {
+      var left: TreeNode = null
+      var right: TreeNode = null
+    }
+
+
+
+
+
     // Button actions
-    listenTo(normalCalcButton, dataStructButton, discreteMathButton, backButton)
+    listenTo(normalCalcButton, dataStructButton, graphVisualizationButton, backButton)
     listenTo(buttons: _*)
 
     reactions += {
@@ -439,8 +568,8 @@ object Calculator extends SimpleSwingApplication {
       case ButtonClicked(`dataStructButton`) =>
         showDataStructuresAndAlgorithmsMenu()
 
-      case ButtonClicked(`discreteMathButton`) =>
-        showDiscreteMathMenu()
+      case ButtonClicked(`graphVisualizationButton`) =>
+        showGraphVisualizationMenu()
 
       case ButtonClicked(`backButton`) =>
         showMainMenu()
@@ -514,5 +643,6 @@ object Calculator extends SimpleSwingApplication {
 
     // Initial screen
     contents = mainPanel
+
   }
 }

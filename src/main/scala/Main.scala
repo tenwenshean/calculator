@@ -7,10 +7,20 @@ import java.awt.{Color, Font, Graphics2D, RenderingHints}
 import scala.swing.MenuBar.NoMenuBar.{contents, revalidate}
 
 
+abstract class CalculatorBase extends SimpleSwingApplication {
+
+
+
+
+}
+
+
 class TreeNode(var value: Int) {
   var left: TreeNode = null
   var right: TreeNode = null
 }
+
+
 
 object Calculator extends SimpleSwingApplication {
 
@@ -99,6 +109,41 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
+    def computeResult(): Unit = {
+      if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
+        val result = operator match {
+          case "+" => previousNumber.toDouble + currentNumber.toDouble
+          case "-" => previousNumber.toDouble - currentNumber.toDouble
+          case "*" => previousNumber.toDouble * currentNumber.toDouble
+          case "/" =>
+            if (currentNumber.toDouble == 0) {
+              Dialog.showMessage(top, "Cannot divide by zero!", title = "Error")
+              0.0
+            } else {
+              previousNumber.toDouble / currentNumber.toDouble
+            }
+        }
+        displayText += s" = ${result.toString}"
+        display.text = displayText
+        currentNumber = result.toString
+        previousNumber = ""
+        operator = ""
+        isResultShown = true
+      }
+    }
+
+    def clearCalculator(): Unit = {
+      displayText = ""
+      currentNumber = ""
+      previousNumber = ""
+      operator = ""
+      display.text = displayText
+      isResultShown = false
+    }
+
+    // Initial screen
+    contents = mainPanel
+
     // Button actions
     listenTo(normalCalcButton, dataStructButton, backButton)
     listenTo(buttons: _*)
@@ -148,40 +193,7 @@ object Calculator extends SimpleSwingApplication {
         clearCalculator()
     }
 
-    def computeResult(): Unit = {
-      if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
-        val result = operator match {
-          case "+" => previousNumber.toDouble + currentNumber.toDouble
-          case "-" => previousNumber.toDouble - currentNumber.toDouble
-          case "*" => previousNumber.toDouble * currentNumber.toDouble
-          case "/" =>
-            if (currentNumber.toDouble == 0) {
-              Dialog.showMessage(top, "Cannot divide by zero!", title = "Error")
-              0.0
-            } else {
-              previousNumber.toDouble / currentNumber.toDouble
-            }
-        }
-        displayText += s" = ${result.toString}"
-        display.text = displayText
-        currentNumber = result.toString
-        previousNumber = ""
-        operator = ""
-        isResultShown = true
-      }
-    }
 
-    def clearCalculator(): Unit = {
-      displayText = ""
-      currentNumber = ""
-      previousNumber = ""
-      operator = ""
-      display.text = displayText
-      isResultShown = false
-    }
-
-    // Initial screen
-    contents = mainPanel
 
     // Updated Data Structures and Algorithms Menu
     def showDataStructuresAndAlgorithmsMenu(): Unit = {
@@ -919,23 +931,24 @@ object Calculator extends SimpleSwingApplication {
 
 
 
-
-
-
     def showDataStructuresMenu(): Unit = {
       val stackButton = new Button("Stack Visualization")
+      val queueButton = new Button("Queue Visualization")
 
       contents = new BorderPanel {
-        layout(new GridPanel(2, 1) {
+        layout(new GridPanel(3, 1) {
           contents += stackButton
+          contents += queueButton
           contents += new Label("Select a data structure")
         }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
 
       }
-      listenTo(stackButton)
+      listenTo(stackButton, queueButton )
       reactions += {
         case ButtonClicked(`stackButton`) => showStackVisualization()
+        case ButtonClicked(`queueButton`) => showQueueVisualization()
+
       }
 
       revalidate()
@@ -1054,6 +1067,140 @@ object Calculator extends SimpleSwingApplication {
       updateStackVisualization()
       revalidate()
     }
+
+    def showQueueVisualization(): Unit = {
+      var queue: List[Int] = List()
+      val inputField = new TextField {
+        columns = 10
+    }
+      val enqueueButton = new Button("Enqueue")
+      val dequeueButton = new Button("Dequeue")
+      val clearButton = new Button("Clear")
+      val resultLabel = new Label("Queue operations will be shown here")
+
+      val queuePanel = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+          val boxWidth = 60
+          val boxHeight = 60
+          var startX = 20 // Starting X position
+          val startY = (size.height - boxHeight) / 2 - 20 // Centered Y position, moved up to make room for position labels
+
+          g.setFont(new Font("Arial", Font.BOLD, 14))
+
+          queue.zipWithIndex.foreach { case (item, index) =>
+            g.setColor(new Color(100, 149, 237))
+            g.fillRect(startX, startY, boxWidth, boxHeight)
+            g.setColor(Color.BLACK)
+            g.drawRect(startX, startY, boxWidth, boxHeight)
+
+            val itemStr = item.toString
+            val fontMetrics = g.getFontMetrics
+            val textWidth = fontMetrics.stringWidth(itemStr)
+            val textHeight = fontMetrics.getHeight
+            g.drawString(itemStr, startX + (boxWidth - textWidth) / 2, startY + boxHeight - (boxHeight - textHeight) / 2)
+
+            // Draw array position below the box
+            val positionStr = index.toString
+            val positionWidth = fontMetrics.stringWidth(positionStr)
+            g.drawString(positionStr, startX + (boxWidth - positionWidth) / 2, startY + boxHeight + 20)
+
+            startX += boxWidth + 5 // Move right for the next box
+          }
+
+          // Draw arrow pointing to the right side of the rightmost element
+          if (queue.nonEmpty) {
+            g.setColor(Color.RED)
+            val arrowX = startX - 5 // Just to the right of the last box
+            val arrowY = startY + boxHeight / 2
+            val arrowLength = 30
+
+            // Horizontal line
+            g.drawLine(arrowX, arrowY, arrowX + arrowLength, arrowY)
+
+            // Arrowhead
+            g.drawLine(arrowX + arrowLength, arrowY, arrowX + arrowLength - 5, arrowY - 5)
+            g.drawLine(arrowX + arrowLength, arrowY, arrowX + arrowLength - 5, arrowY + 5)
+
+            // "Rear" label
+            g.drawString("Rear", arrowX + arrowLength + 5, arrowY + 5)
+          }
+
+          // Draw arrow pointing to the left side of the leftmost element
+          if (queue.nonEmpty) {
+            g.setColor(Color.GREEN)
+            val arrowX = 20 - 5 // Just to the left of the first box
+            val arrowY = startY + boxHeight / 2
+            val arrowLength = 30
+
+            // Horizontal line
+            g.drawLine(arrowX, arrowY, arrowX - arrowLength, arrowY)
+
+            // Arrowhead
+            g.drawLine(arrowX - arrowLength, arrowY, arrowX - arrowLength + 5, arrowY - 5)
+            g.drawLine(arrowX - arrowLength, arrowY, arrowX - arrowLength + 5, arrowY + 5)
+
+            // "Front" label
+            g.drawString("Front", arrowX - arrowLength - 40, arrowY + 5)
+          }
+        }
+      }
+
+      def updateQueueVisualization(): Unit = {
+        queuePanel.repaint()
+        resultLabel.text = s"Current queue: ${queue.mkString(", ")}"
+      }
+
+      contents = new BorderPanel {
+        layout(new GridPanel(6, 1) {
+          contents += new Label("Enter a number to enqueue into the queue:")
+          contents += inputField
+          contents += new FlowPanel(enqueueButton, dequeueButton, clearButton)
+          contents += queuePanel
+          contents += resultLabel
+          contents += new Label("Note: Queue grows from left to right. Leftmost element is the front.")
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(enqueueButton, dequeueButton, clearButton)
+      reactions += {
+        case ButtonClicked(`enqueueButton`) =>
+          try {
+            val num = inputField.text.toInt
+            queue = queue :+ num // Append to the end of the list
+            resultLabel.text = s"Enqueued $num into the queue"
+            inputField.text = ""
+            updateQueueVisualization()
+          } catch {
+            case _: NumberFormatException =>
+              resultLabel.text = "Invalid input. Please enter a valid integer."
+          }
+
+        case ButtonClicked(`dequeueButton`) =>
+          queue match {
+            case head :: tail =>
+              queue = tail
+              resultLabel.text = s"Dequeued $head from the queue"
+              updateQueueVisualization()
+            case Nil =>
+              resultLabel.text = "Cannot dequeue from an empty queue"
+          }
+
+        case ButtonClicked(`clearButton`) =>
+          queue = List()
+          resultLabel.text = "Queue cleared"
+          updateQueueVisualization()
+      }
+      updateQueueVisualization()
+      revalidate()
+    }
+
+
 
     def showBSTMenu(): Unit = {
       var bst: TreeNode = null

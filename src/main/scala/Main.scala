@@ -1,4 +1,3 @@
-import scala.collection.mutable
 import scala.swing._
 import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
@@ -9,7 +8,7 @@ class TreeNode(var value: Int) {
   var right: TreeNode = null
 }
 
-trait Calculator {
+abstract class Calculator {
   def calculate(a: Double, b: Double, operator: String): Double
 }
 

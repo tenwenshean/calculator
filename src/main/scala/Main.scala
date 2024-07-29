@@ -1,32 +1,38 @@
-import Calculator.listenTo
-
 import scala.collection.mutable
 import scala.swing._
 import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
 import scala.swing.MenuBar.NoMenuBar.{contents, revalidate}
 
-
-abstract class CalculatorBase extends SimpleSwingApplication {
-
-
-
-
-}
-
-
 class TreeNode(var value: Int) {
   var left: TreeNode = null
   var right: TreeNode = null
 }
 
+trait Calculator {
+  def calculate(a: Double, b: Double, operator: String): Double
+}
+
+class BasicCalculator extends Calculator {
+  override def calculate(a: Double, b: Double, operator: String): Double = {
+    operator match {
+      case "+" => a + b
+      case "-" => a - b
+      case "*" => a * b
+      case "/" =>
+        if (b == 0) throw new ArithmeticException("Cannot divide by zero")
+        else a / b
+      case _ => throw new IllegalArgumentException("Unknown operator")
+    }
+  }
+}
 
 
-object Calculator extends SimpleSwingApplication {
+object CalculatorApp extends SimpleSwingApplication {
 
   def top = new MainFrame {
     title = "Scala Calculator"
-    preferredSize = new Dimension(1000, 800) // Increased overall size
+    preferredSize = new Dimension(1000, 800)
 
     // Main screen buttons
     val normalCalcButton = new Button("Normal Calculation")
@@ -35,15 +41,14 @@ object Calculator extends SimpleSwingApplication {
     val mainPanel = new GridPanel(2, 1) {
       contents += normalCalcButton
       contents += dataStructButton
-      preferredSize = new Dimension(600, 700) // Adjusted size
+      preferredSize = new Dimension(600, 700)
     }
-
 
     // Calculator UI elements
     val display = new TextField {
       columns = 10
       editable = false
-      preferredSize = new Dimension(580, 50) // Adjusted width
+      preferredSize = new Dimension(580, 50)
     }
 
     val buttons = List(
@@ -62,35 +67,27 @@ object Calculator extends SimpleSwingApplication {
 
     val buttonPanel = new GridPanel(5, 4) {
       buttons.foreach(contents += _)
-      preferredSize = new Dimension(580, 300) // Adjusted width
+      preferredSize = new Dimension(580, 300)
     }
 
     // Back button
     val backButton = new Button("Back")
 
     // Menu bar
-    var myMenuBar = new MenuBar {
+    val myMenuBar = new MenuBar {
       contents += new Menu("Options") {
-        contents += new MenuItem("Normal Calculation") {
-          action = Action("Normal Calculation") {
-            showCalculator()
-          }
-        }
-        contents += new MenuItem("Data Structures and Algorithms") {
-          action = Action("Data Structures and Algorithms") {
-            showDataStructuresAndAlgorithmsMenu()
-          }
-        }
-
-        contents += new MenuItem("Exit") {
-          action = Action("Exit") {
-            sys.exit(0)
-          }
-        }
+        contents += new MenuItem(Action("Normal Calculation") {
+          showCalculator()
+        })
+        contents += new MenuItem(Action("Data Structures and Algorithms") {
+          showDataStructuresAndAlgorithmsMenu()
+        })
+        contents += new MenuItem(Action("Exit") {
+          sys.exit(0)
+        })
       }
     }
     menuBar = myMenuBar
-
 
     def showMainMenu(): Unit = {
       contents = mainPanel
@@ -109,26 +106,19 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
-    def computeResult(): Unit = {
+    def computeResult(calculator: Calculator): Unit = {
       if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
-        val result = operator match {
-          case "+" => previousNumber.toDouble + currentNumber.toDouble
-          case "-" => previousNumber.toDouble - currentNumber.toDouble
-          case "*" => previousNumber.toDouble * currentNumber.toDouble
-          case "/" =>
-            if (currentNumber.toDouble == 0) {
-              Dialog.showMessage(top, "Cannot divide by zero!", title = "Error")
-              0.0
-            } else {
-              previousNumber.toDouble / currentNumber.toDouble
-            }
+        try {
+          val result = calculator.calculate(previousNumber.toDouble, currentNumber.toDouble, operator)
+          displayText += s" = ${result.toString}"
+          display.text = displayText
+          currentNumber = result.toString
+          previousNumber = ""
+          operator = ""
+          isResultShown = true
+        } catch {
+          case e: Exception => Dialog.showMessage(top, e.getMessage, title = "Error")
         }
-        displayText += s" = ${result.toString}"
-        display.text = displayText
-        currentNumber = result.toString
-        previousNumber = ""
-        operator = ""
-        isResultShown = true
       }
     }
 
@@ -141,61 +131,6 @@ object Calculator extends SimpleSwingApplication {
       isResultShown = false
     }
 
-    // Initial screen
-    contents = mainPanel
-
-    // Button actions
-    listenTo(normalCalcButton, dataStructButton, backButton)
-    listenTo(buttons: _*)
-
-    reactions += {
-      case ButtonClicked(`normalCalcButton`) =>
-        showCalculator()
-
-      case ButtonClicked(`dataStructButton`) =>
-        showDataStructuresAndAlgorithmsMenu()
-
-      case ButtonClicked(`backButton`) =>
-        showMainMenu()
-
-      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
-        if (isResultShown) {
-          clearCalculator()
-        }
-        currentNumber += b.text
-        displayText += b.text
-        display.text = displayText
-        isResultShown = false
-
-      case ButtonClicked(b) if "+-*/".contains(b.text) =>
-        if (isResultShown) {
-          previousNumber = currentNumber
-          displayText = currentNumber
-          isResultShown = false
-        }
-        if (operator.isEmpty) {
-          operator = b.text
-          previousNumber = currentNumber
-          currentNumber = ""
-          displayText += s" ${b.text} "
-          display.text = displayText
-        } else {
-          computeResult()
-          operator = b.text
-          displayText += s" ${b.text} "
-          display.text = displayText
-        }
-
-      case ButtonClicked(b) if b.text == "=" =>
-        computeResult()
-
-      case ButtonClicked(b) if b.text == "C" =>
-        clearCalculator()
-    }
-
-
-
-    // Updated Data Structures and Algorithms Menu
     def showDataStructuresAndAlgorithmsMenu(): Unit = {
       val sortingButton = new Button("Sorting")
       val dataStructuresButton = new Button("DataStructure")
@@ -210,7 +145,6 @@ object Calculator extends SimpleSwingApplication {
         layout(backButton) = BorderPanel.Position.South
       }
 
-
       listenTo(sortingButton, dataStructuresButton, graphButton)
       reactions += {
         case ButtonClicked(`sortingButton`) => showSortingMenu()
@@ -221,7 +155,7 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
-
+    // Implement the Sorting, DataStructures, and BST Menus as needed
     def showSortingMenu(): Unit = {
       val bubbleSortButton = new Button("Bubble Sort")    // button for bubble sort
       val selectionSortButton = new Button("Selection Sort") // button for selection sort
@@ -248,7 +182,6 @@ object Calculator extends SimpleSwingApplication {
         case ButtonClicked(`insertionSortButton`) => showInsertionSort()
         case ButtonClicked(`shellSortButton`) => showShellSort()
         case ButtonClicked(`mergeSortButton`) => showMergeSort()
-
 
       }
 
@@ -392,7 +325,6 @@ object Calculator extends SimpleSwingApplication {
 
       revalidate()
     }
-
     def showSelectionSort(): Unit = {
       val inputField = new TextField { columns = 30 }
       val sortButton = new Button("Start Selection Sort")
@@ -1072,7 +1004,7 @@ object Calculator extends SimpleSwingApplication {
       var queue: List[Int] = List()
       val inputField = new TextField {
         columns = 10
-    }
+      }
       val enqueueButton = new Button("Enqueue")
       val dequeueButton = new Button("Dequeue")
       val clearButton = new Button("Clear")
@@ -1199,6 +1131,7 @@ object Calculator extends SimpleSwingApplication {
       updateQueueVisualization()
       revalidate()
     }
+
 
 
 
@@ -1343,5 +1276,69 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
+
+    // Initial screen
+    contents = mainPanel
+
+    // Button actions
+    listenTo(normalCalcButton, dataStructButton, backButton)
+    listenTo(buttons: _*)
+
+    reactions += {
+      case ButtonClicked(`normalCalcButton`) =>
+        showCalculator()
+
+      case ButtonClicked(`dataStructButton`) =>
+        showDataStructuresAndAlgorithmsMenu()
+
+      case ButtonClicked(`backButton`) =>
+        showMainMenu()
+
+      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
+        if (isResultShown) {
+          clearCalculator()
+        }
+        currentNumber += b.text
+        displayText += b.text
+        display.text = displayText
+        isResultShown = false
+
+      case ButtonClicked(b) if "+-*/".contains(b.text) =>
+        if (isResultShown) {
+          previousNumber = currentNumber
+          displayText = currentNumber
+          isResultShown = false
+        }
+        if (operator.isEmpty) {
+          operator = b.text
+          previousNumber = currentNumber
+          currentNumber = ""
+          displayText += s" ${b.text} "
+          display.text = displayText
+        } else {
+          computeResult(new BasicCalculator())
+          operator = b.text
+          displayText += s" ${b.text} "
+          display.text = displayText
+        }
+
+      case ButtonClicked(b) if b.text == "=" =>
+        computeResult(new BasicCalculator())
+
+      case ButtonClicked(b) if b.text == "C" =>
+        clearCalculator()
+    }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+

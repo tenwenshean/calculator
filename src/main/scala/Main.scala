@@ -6,21 +6,25 @@ import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
 import scala.swing.MenuBar.NoMenuBar.{contents, revalidate}
 
+
+class TreeNode(var value: Int) {
+  var left: TreeNode = null
+  var right: TreeNode = null
+}
+
 object Calculator extends SimpleSwingApplication {
 
   def top = new MainFrame {
     title = "Scala Calculator"
-    preferredSize = new Dimension(600, 700) // Increased overall size
+    preferredSize = new Dimension(1000, 800) // Increased overall size
 
     // Main screen buttons
     val normalCalcButton = new Button("Normal Calculation")
     val dataStructButton = new Button("Data Structures and Algorithms")
-    val graphVisualizationButton = new Button("Graph Visualization")
 
-    val mainPanel = new GridPanel(3, 1) {
+    val mainPanel = new GridPanel(2, 1) {
       contents += normalCalcButton
       contents += dataStructButton
-      contents += graphVisualizationButton
       preferredSize = new Dimension(600, 700) // Adjusted size
     }
 
@@ -67,11 +71,7 @@ object Calculator extends SimpleSwingApplication {
             showDataStructuresAndAlgorithmsMenu()
           }
         }
-        contents += new MenuItem("Graph Visualization") {
-          action = Action("Graph Visualization") {
-            showGraphVisualizationMenu()
-          }
-        }
+
         contents += new MenuItem("Exit") {
           action = Action("Exit") {
             sys.exit(0)
@@ -81,9 +81,11 @@ object Calculator extends SimpleSwingApplication {
     }
     menuBar = myMenuBar
 
+
     def showMainMenu(): Unit = {
       contents = mainPanel
       revalidate()
+      repaint()
     }
 
     def showCalculator(): Unit = {
@@ -96,6 +98,90 @@ object Calculator extends SimpleSwingApplication {
       }
       revalidate()
     }
+
+    // Button actions
+    listenTo(normalCalcButton, dataStructButton, backButton)
+    listenTo(buttons: _*)
+
+    reactions += {
+      case ButtonClicked(`normalCalcButton`) =>
+        showCalculator()
+
+      case ButtonClicked(`dataStructButton`) =>
+        showDataStructuresAndAlgorithmsMenu()
+
+      case ButtonClicked(`backButton`) =>
+        showMainMenu()
+
+      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
+        if (isResultShown) {
+          clearCalculator()
+        }
+        currentNumber += b.text
+        displayText += b.text
+        display.text = displayText
+        isResultShown = false
+
+      case ButtonClicked(b) if "+-*/".contains(b.text) =>
+        if (isResultShown) {
+          previousNumber = currentNumber
+          displayText = currentNumber
+          isResultShown = false
+        }
+        if (operator.isEmpty) {
+          operator = b.text
+          previousNumber = currentNumber
+          currentNumber = ""
+          displayText += s" ${b.text} "
+          display.text = displayText
+        } else {
+          computeResult()
+          operator = b.text
+          displayText += s" ${b.text} "
+          display.text = displayText
+        }
+
+      case ButtonClicked(b) if b.text == "=" =>
+        computeResult()
+
+      case ButtonClicked(b) if b.text == "C" =>
+        clearCalculator()
+    }
+
+    def computeResult(): Unit = {
+      if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
+        val result = operator match {
+          case "+" => previousNumber.toDouble + currentNumber.toDouble
+          case "-" => previousNumber.toDouble - currentNumber.toDouble
+          case "*" => previousNumber.toDouble * currentNumber.toDouble
+          case "/" =>
+            if (currentNumber.toDouble == 0) {
+              Dialog.showMessage(top, "Cannot divide by zero!", title = "Error")
+              0.0
+            } else {
+              previousNumber.toDouble / currentNumber.toDouble
+            }
+        }
+        displayText += s" = ${result.toString}"
+        display.text = displayText
+        currentNumber = result.toString
+        previousNumber = ""
+        operator = ""
+        isResultShown = true
+      }
+    }
+
+    def clearCalculator(): Unit = {
+      displayText = ""
+      currentNumber = ""
+      previousNumber = ""
+      operator = ""
+      display.text = displayText
+      isResultShown = false
+    }
+
+    // Initial screen
+    contents = mainPanel
 
     // Updated Data Structures and Algorithms Menu
     def showDataStructuresAndAlgorithmsMenu(): Unit = {
@@ -117,7 +203,7 @@ object Calculator extends SimpleSwingApplication {
       reactions += {
         case ButtonClicked(`sortingButton`) => showSortingMenu()
         case ButtonClicked(`dataStructuresButton`) => showDataStructuresMenu()
-        case ButtonClicked(`graphButton`) => showGraphMenu()
+        case ButtonClicked(`graphButton`) => showBSTMenu()
       }
 
       revalidate()
@@ -125,18 +211,33 @@ object Calculator extends SimpleSwingApplication {
 
 
     def showSortingMenu(): Unit = {
-      val bubbleSortButton = new Button("Bubble Sort")
+      val bubbleSortButton = new Button("Bubble Sort")    // button for bubble sort
+      val selectionSortButton = new Button("Selection Sort") // button for selection sort
+      val insertionSortButton = new Button("Insertion Sort") // button for insertion sort
+      val shellSortButton = new Button("Shell Sort") // button for shell sort
+      val mergeSortButton = new Button("Merge Sort") // button for merge sort
+
 
       contents = new BorderPanel {
-        layout(new GridPanel(2, 1) {
+        layout(new GridPanel(6, 1) {
           contents += bubbleSortButton
+          contents += selectionSortButton
+          contents += insertionSortButton
+          contents += shellSortButton
+          contents += mergeSortButton
           contents += new Label("Select a sorting algorithm")
         }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
       }
-      listenTo(bubbleSortButton)
+      listenTo(bubbleSortButton, selectionSortButton, insertionSortButton, shellSortButton, mergeSortButton)
       reactions += {
         case ButtonClicked(`bubbleSortButton`) => showBubbleSort()
+        case ButtonClicked(`selectionSortButton`) => showSelectionSort()
+        case ButtonClicked(`insertionSortButton`) => showInsertionSort()
+        case ButtonClicked(`shellSortButton`) => showShellSort()
+        case ButtonClicked(`mergeSortButton`) => showMergeSort()
+
+
       }
 
       revalidate()
@@ -280,6 +381,547 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
+    def showSelectionSort(): Unit = {
+      val inputField = new TextField { columns = 30 }
+      val sortButton = new Button("Start Selection Sort")
+      val previousButton = new Button("Previous")
+      val nextButton = new Button("Next")
+      val resultLabel = new Label("Enter up to 20 numbers and click 'Start Selection Sort'")
+      val explanationLabel = new Label("Explanation will appear here")
+      var numbers: Array[Int] = Array()
+      var sortingSteps: List[(Array[Int], String)] = List()
+      var currentStep = 0
+
+      def selectionSort(arr: Array[Int]): List[(Array[Int], String)] = {
+        var steps = List((arr.clone(), "Initial array"))
+        val n = arr.length
+        for (i <- 0 until n - 1) {
+          var minIndex = i
+          for (j <- i + 1 until n) {
+            if (arr(j) < arr(minIndex)) {
+              minIndex = j
+            }
+          }
+          if (minIndex != i) {
+            val temp = arr(i)
+            arr(i) = arr(minIndex)
+            arr(minIndex) = temp
+            steps = (arr.clone(), s"Swapped ${arr(i)} and ${arr(minIndex)} at positions $i and $minIndex") :: steps
+          }
+          steps = (arr.clone(), s"Completed pass ${i + 1}") :: steps
+        }
+        steps.reverse
+      }
+
+      val chart = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+          if (sortingSteps.nonEmpty && currentStep < sortingSteps.length) {
+            val (step, _) = sortingSteps(currentStep)
+            val maxValue = step.max
+            val minValue = step.min
+            val width = size.width / step.length
+            g.setFont(new Font("Arial", Font.BOLD, 14))
+            for (i <- step.indices) {
+              val heightRatio = (step(i) - minValue).toDouble / (maxValue - minValue).max(1)
+              val height = (heightRatio * (size.height - 120)).toInt.max(40)
+              g.setColor(new Color(100, 149, 237))
+              g.fillRect(i * width, size.height - height - 20, width - 1, height)
+              g.setColor(Color.BLACK)
+              g.drawRect(i * width, size.height - height - 20, width - 1, height)
+
+              // Draw the value inside the bar
+              val valueStr = step(i).toString
+              val fontMetrics = g.getFontMetrics
+              val valueWidth = fontMetrics.stringWidth(valueStr)
+              val valueHeight = fontMetrics.getHeight
+              val valueX = i * width + (width - valueWidth) / 2
+              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20
+              g.setColor(Color.WHITE)
+              g.drawString(valueStr, valueX, valueY)
+
+              // Draw the array position below the bar
+              val positionStr = i.toString
+              val positionWidth = fontMetrics.stringWidth(positionStr)
+              val positionX = i * width + (width - positionWidth) / 2
+              val positionY = size.height - 5
+              g.setColor(Color.BLACK)
+              g.drawString(positionStr, positionX, positionY)
+            }
+          }
+        }
+      }
+
+      contents = new BorderPanel {
+        layout(new GridPanel(7, 1) {
+          contents += new Label("Enter up to 20 numbers separated by spaces:")
+          contents += inputField
+          contents += sortButton
+          contents += chart
+          contents += new FlowPanel(previousButton, nextButton)
+          contents += resultLabel
+          contents += explanationLabel
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(sortButton, previousButton, nextButton)
+      reactions += {
+        case ButtonClicked(`sortButton`) =>
+          try {
+            numbers = inputField.text.split(" ").map(_.trim.toInt).take(20)
+            if (numbers.length > 20) {
+              resultLabel.text = "Only the first 20 numbers were used."
+            } else {
+              resultLabel.text = s"Sorting ${numbers.length} numbers."
+              sortingSteps = selectionSort(numbers)
+              currentStep = 0
+              resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
+              explanationLabel.text = sortingSteps(currentStep)._2
+              chart.repaint()
+            }
+          } catch {
+            case _: NumberFormatException => resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
+          }
+
+        case ButtonClicked(`previousButton`) =>
+          if (currentStep > 0) {
+            currentStep -= 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+
+        case ButtonClicked(`nextButton`) =>
+          if (currentStep < sortingSteps.length - 1) {
+            currentStep += 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+      }
+    }
+
+    def showInsertionSort(): Unit = {
+      val inputField = new TextField { columns = 30 }
+      val sortButton = new Button("Start Insertion Sort")
+      val previousButton = new Button("Previous")
+      val nextButton = new Button("Next")
+      val resultLabel = new Label("Enter up to 20 numbers and click 'Start Insertion Sort'")
+      val explanationLabel = new Label("Explanation will appear here")
+      var numbers: Array[Int] = Array()
+      var sortingSteps: List[(Array[Int], String)] = List()
+      var currentStep = 0
+
+      def insertionSort(arr: Array[Int]): List[(Array[Int], String)] = {
+        var steps = List((arr.clone(), "Initial array"))
+        val n = arr.length
+        for (i <- 1 until n) {
+          val key = arr(i)
+          var j = i - 1
+          while (j >= 0 && arr(j) > key) {
+            arr(j + 1) = arr(j)
+            steps = (arr.clone(), s"Moved ${arr(j)} from position $j to position ${j + 1}") :: steps
+            j -= 1
+          }
+          arr(j + 1) = key
+          steps = (arr.clone(), s"Inserted ${key} at position ${j + 1}") :: steps
+        }
+        steps.reverse
+      }
+
+      val chart = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+          if (sortingSteps.nonEmpty && currentStep < sortingSteps.length) {
+            val (step, _) = sortingSteps(currentStep)
+            val maxValue = step.max
+            val minValue = step.min
+            val width = size.width / step.length
+            g.setFont(new Font("Arial", Font.BOLD, 14))
+            for (i <- step.indices) {
+              val heightRatio = (step(i) - minValue).toDouble / (maxValue - minValue).max(1)
+              val height = (heightRatio * (size.height - 120)).toInt.max(40)
+              g.setColor(new Color(100, 149, 237))
+              g.fillRect(i * width, size.height - height - 20, width - 1, height)
+              g.setColor(Color.BLACK)
+              g.drawRect(i * width, size.height - height - 20, width - 1, height)
+
+              // Draw the value inside the bar
+              val valueStr = step(i).toString
+              val fontMetrics = g.getFontMetrics
+              val valueWidth = fontMetrics.stringWidth(valueStr)
+              val valueHeight = fontMetrics.getHeight
+              val valueX = i * width + (width - valueWidth) / 2
+              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20
+              g.setColor(Color.WHITE)
+              g.drawString(valueStr, valueX, valueY)
+
+              // Draw the array position below the bar
+              val positionStr = i.toString
+              val positionWidth = fontMetrics.stringWidth(positionStr)
+              val positionX = i * width + (width - positionWidth) / 2
+              val positionY = size.height - 5
+              g.setColor(Color.BLACK)
+              g.drawString(positionStr, positionX, positionY)
+            }
+          }
+        }
+      }
+
+      contents = new BorderPanel {
+        layout(new GridPanel(7, 1) {
+          contents += new Label("Enter up to 20 numbers separated by spaces:")
+          contents += inputField
+          contents += sortButton
+          contents += chart
+          contents += new FlowPanel(previousButton, nextButton)
+          contents += resultLabel
+          contents += explanationLabel
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(sortButton, previousButton, nextButton)
+      reactions += {
+        case ButtonClicked(`sortButton`) =>
+          try {
+            numbers = inputField.text.split(" ").map(_.trim.toInt).take(20)
+            if (numbers.length > 20) {
+              resultLabel.text = "Only the first 20 numbers were used."
+            } else {
+              resultLabel.text = s"Sorting ${numbers.length} numbers."
+              sortingSteps = insertionSort(numbers)
+              currentStep = 0
+              resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
+              explanationLabel.text = sortingSteps(currentStep)._2
+              chart.repaint()
+            }
+          } catch {
+            case _: NumberFormatException => resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
+          }
+
+        case ButtonClicked(`previousButton`) =>
+          if (currentStep > 0) {
+            currentStep -= 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+
+        case ButtonClicked(`nextButton`) =>
+          if (currentStep < sortingSteps.length - 1) {
+            currentStep += 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+      }
+    }
+
+    def showShellSort(): Unit = {
+      val inputField = new TextField { columns = 30 }
+      val sortButton = new Button("Start Shell Sort")
+      val previousButton = new Button("Previous")
+      val nextButton = new Button("Next")
+      val resultLabel = new Label("Enter up to 20 numbers and click 'Start Shell Sort'")
+      val explanationLabel = new Label("Explanation will appear here")
+      var numbers: Array[Int] = Array()
+      var sortingSteps: List[(Array[Int], String)] = List()
+      var currentStep = 0
+
+      def shellSort(arr: Array[Int]): List[(Array[Int], String)] = {
+        var steps = List((arr.clone(), "Initial array"))
+        val n = arr.length
+        var gap = n / 2
+
+        while (gap > 0) {
+          for (i <- gap until n) {
+            val temp = arr(i)
+            var j = i
+            while (j >= gap && arr(j - gap) > temp) {
+              arr(j) = arr(j - gap)
+              steps = (arr.clone(), s"Moved ${arr(j - gap)} from position ${j - gap} to position $j with gap $gap") :: steps
+              j -= gap
+            }
+            arr(j) = temp
+            steps = (arr.clone(), s"Inserted ${temp} at position $j") :: steps
+          }
+          steps = (arr.clone(), s"Reduced gap to ${gap / 2}") :: steps
+          gap /= 2
+        }
+        steps.reverse
+      }
+
+      val chart = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+          if (sortingSteps.nonEmpty && currentStep < sortingSteps.length) {
+            val (step, _) = sortingSteps(currentStep)
+            val maxValue = step.max
+            val minValue = step.min
+            val width = size.width / step.length
+            g.setFont(new Font("Arial", Font.BOLD, 14))
+            for (i <- step.indices) {
+              val heightRatio = (step(i) - minValue).toDouble / (maxValue - minValue).max(1)
+              val height = (heightRatio * (size.height - 120)).toInt.max(40)
+              g.setColor(new Color(100, 149, 237))
+              g.fillRect(i * width, size.height - height - 20, width - 1, height)
+              g.setColor(Color.BLACK)
+              g.drawRect(i * width, size.height - height - 20, width - 1, height)
+
+              // Draw the value inside the bar
+              val valueStr = step(i).toString
+              val fontMetrics = g.getFontMetrics
+              val valueWidth = fontMetrics.stringWidth(valueStr)
+              val valueHeight = fontMetrics.getHeight
+              val valueX = i * width + (width - valueWidth) / 2
+              val valueY = size.height - (height / 2) + (valueHeight / 2) - 20
+              g.setColor(Color.WHITE)
+              g.drawString(valueStr, valueX, valueY)
+
+              // Draw the array position below the bar
+              val positionStr = i.toString
+              val positionWidth = fontMetrics.stringWidth(positionStr)
+              val positionX = i * width + (width - positionWidth) / 2
+              val positionY = size.height - 5
+              g.setColor(Color.BLACK)
+              g.drawString(positionStr, positionX, positionY)
+            }
+          }
+        }
+      }
+
+      contents = new BorderPanel {
+        layout(new GridPanel(7, 1) {
+          contents += new Label("Enter up to 20 numbers separated by spaces:")
+          contents += inputField
+          contents += sortButton
+          contents += chart
+          contents += new FlowPanel(previousButton, nextButton)
+          contents += resultLabel
+          contents += explanationLabel
+        }) = BorderPanel.Position.Center
+        layout(backButton) = BorderPanel.Position.South
+      }
+
+      listenTo(sortButton, previousButton, nextButton)
+      reactions += {
+        case ButtonClicked(`sortButton`) =>
+          try {
+            numbers = inputField.text.split(" ").map(_.trim.toInt).take(20)
+            if (numbers.length > 20) {
+              resultLabel.text = "Only the first 20 numbers were used."
+            } else {
+              resultLabel.text = s"Sorting ${numbers.length} numbers."
+              sortingSteps = shellSort(numbers)
+              currentStep = 0
+              resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
+              explanationLabel.text = sortingSteps(currentStep)._2
+              chart.repaint()
+            }
+          } catch {
+            case _: NumberFormatException => resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
+          }
+
+        case ButtonClicked(`previousButton`) =>
+          if (currentStep > 0) {
+            currentStep -= 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+
+        case ButtonClicked(`nextButton`) =>
+          if (currentStep < sortingSteps.length - 1) {
+            currentStep += 1
+            resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+            explanationLabel.text = sortingSteps(currentStep)._2
+            chart.repaint()
+          }
+      }
+    }
+
+    def showMergeSort(): Unit = {
+      val inputField = new TextField { columns = 30 }
+      val sortButton = new Button("Start Merge Sort")
+      val previousButton = new Button("Previous")
+      val nextButton = new Button("Next")
+      val clearButton = new Button("Clear")
+      val resultLabel = new Label("Enter up to 8 numbers and click 'Start Merge Sort'")
+      val explanationLabel = new Label("Explanation will appear here")
+      var numbers: Array[Int] = Array()
+      var sortingSteps: List[(Array[Int], String)] = List()
+      var currentStep = 0
+
+      def mergeSort(arr: Array[Int]): List[(Array[Int], String)] = {
+        def merge(left: Array[Int], right: Array[Int]): (Array[Int], String) = {
+          var result = Array[Int]()
+          var i = 0
+          var j = 0
+
+          while (i < left.length && j < right.length) {
+            if (left(i) <= right(j)) {
+              result :+= left(i)
+              i += 1
+            } else {
+              result :+= right(j)
+              j += 1
+            }
+          }
+
+          result ++= left.drop(i)
+          result ++= right.drop(j)
+          (result, s"Merged ${left.mkString(", ")} and ${right.mkString(", ")}")
+        }
+
+        def sort(arr: Array[Int]): List[(Array[Int], String)] = {
+          if (arr.length <= 1) {
+            List((arr.clone(), s"Single element or empty array: ${arr.mkString(", ")}"))
+          } else {
+            val mid = arr.length / 2
+            val left = arr.take(mid)
+            val right = arr.drop(mid)
+            val leftSteps = sort(left)
+            val rightSteps = sort(right)
+            val (merged, mergeExplanation) = merge(leftSteps.last._1, rightSteps.last._1)
+
+            val combinedSteps = leftSteps.dropRight(1) ++ rightSteps.dropRight(1)
+            val sortedLeft = leftSteps.last._1
+            val sortedRight = rightSteps.last._1
+            val partialSort = sortedLeft ++ sortedRight
+
+            combinedSteps :+
+              (partialSort, s"Sorted left (${sortedLeft.mkString(", ")}) and right (${sortedRight.mkString(", ")})") :+
+              (merged, mergeExplanation)
+          }
+        }
+
+        List((arr.clone(), "Initial unsorted array")) ++ sort(arr)
+      }
+
+      val chart = new Panel {
+        preferredSize = new Dimension(580, 400)
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+          if (sortingSteps.nonEmpty && currentStep < sortingSteps.length) {
+            val stepHeight = size.height / sortingSteps.length
+            val barHeight = (stepHeight * 0.6).toInt // Fixed bar height
+            g.setFont(new Font("Arial", Font.BOLD, 10))
+
+            for ((step, stepIndex) <- sortingSteps.take(currentStep + 1).zipWithIndex) {
+              val (array, explanation) = step
+              val stepWidth = size.width / array.length
+
+              for (i <- array.indices) {
+                val x = i * stepWidth
+                val y = stepIndex * stepHeight + (stepHeight - barHeight) / 2
+
+                // Set color based on whether it's the current step
+                g.setColor(if (stepIndex == currentStep) new Color(100, 149, 237) else new Color(200, 200, 200))
+                g.fillRect(x.toInt, y.toInt, stepWidth.toInt - 1, barHeight)
+                g.setColor(Color.BLACK)
+                g.drawRect(x.toInt, y.toInt, stepWidth.toInt - 1, barHeight)
+
+                val valueStr = array(i).toString
+                val fontMetrics = g.getFontMetrics
+                val valueX = x + (stepWidth - fontMetrics.stringWidth(valueStr)) / 2
+                val valueY = y + barHeight / 2 + fontMetrics.getHeight / 2
+                g.setColor(Color.BLACK)
+                g.drawString(valueStr, valueX.toInt, valueY.toInt)
+              }
+
+              // Draw explanation
+              g.setColor(Color.BLACK)
+              g.drawString(explanation, 10, stepIndex * stepHeight + stepHeight - 5)
+            }
+          }
+        }
+      }
+      val scrollPane = new ScrollPane(chart)
+      scrollPane.preferredSize = new Dimension(600, 400)
+
+
+      contents = new BorderPanel {
+        layout(new GridPanel(1, 1) {
+          contents += new GridPanel(2, 1) {
+            contents += new FlowPanel(new Label("Enter up to 8 numbers separated by spaces:"), inputField)
+            contents += new FlowPanel(sortButton, clearButton, previousButton, nextButton)
+          }
+        }) = BorderPanel.Position.North
+        layout(scrollPane) = BorderPanel.Position.Center
+        layout(new GridPanel(2, 1) {
+          contents += resultLabel
+          contents += explanationLabel
+        }) = BorderPanel.Position.South
+        layout(backButton)  = BorderPanel.Position.South
+      }
+
+
+
+      listenTo(sortButton, previousButton, nextButton, clearButton)
+      reactions += {
+        case ButtonClicked(`sortButton`) =>
+          try {
+            numbers = inputField.text.split(" ").map(_.trim.toInt).take(8)
+            if (numbers.length > 8) {
+              resultLabel.text = "Only the first 8 numbers were used."
+            } else {
+              resultLabel.text = s"Sorting ${numbers.length} numbers."
+              sortingSteps = mergeSort(numbers)
+              currentStep = 0
+              updateVisualization()
+            }
+          } catch {
+            case _: NumberFormatException => resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
+          }
+
+        case ButtonClicked(`previousButton`) =>
+          if (currentStep > 0) {
+            currentStep -= 1
+            updateVisualization()
+          }
+
+        case ButtonClicked(`nextButton`) =>
+          if (currentStep < sortingSteps.length - 1) {
+            currentStep += 1
+            updateVisualization()
+          }
+
+        case ButtonClicked(`clearButton`) =>
+          inputField.text = ""
+          numbers = Array()
+          sortingSteps = List()
+          currentStep = 0
+          resultLabel.text = "Enter up to 8 numbers and click 'Start Merge Sort'"
+          explanationLabel.text = "Explanation will appear here"
+          chart.repaint()
+      }
+
+      def updateVisualization(): Unit = {
+        resultLabel.text = s"Step ${currentStep + 1} of ${sortingSteps.length}"
+        explanationLabel.text = sortingSteps(currentStep)._2
+        chart.repaint()
+      }
+    }
+
+
+
+
+
+
     def showDataStructuresMenu(): Unit = {
       val stackButton = new Button("Stack Visualization")
 
@@ -413,236 +1055,146 @@ object Calculator extends SimpleSwingApplication {
       revalidate()
     }
 
-
-    def showGraphMenu(): Unit = {
-      contents = new BorderPanel {
-        layout(new Label("Graph Menu - To be implemented")) = BorderPanel.Position.Center
-        layout(backButton) = BorderPanel.Position.South
-      }
-      revalidate()
-    }
-
-
-    def showGraphVisualizationMenu(): Unit = {
-      val inOrderTraversalButton = new Button("In-Order Tree Traversal")
-
-      contents = new BorderPanel {
-        layout(new GridPanel(1, 1) {
-          contents += inOrderTraversalButton
-        }) = BorderPanel.Position.Center
-        layout(backButton) = BorderPanel.Position.South
-      }
-
-      listenTo(inOrderTraversalButton)
-      reactions += {
-        case ButtonClicked(`inOrderTraversalButton`) => showInOrderTraversal()
-      }
-
-      revalidate()
-    }
-
-    def showInOrderTraversal(): Unit = {
+    def showBSTMenu(): Unit = {
+      var bst: TreeNode = null
       val inputField = new TextField {
         columns = 30
       }
-      val traverseButton = new Button("Start In-Order Traversal")
-      val resultLabel = new Label("Enter up to 15 numbers and click 'Start In-Order Traversal'")
-      val explanationLabel = new Label("Explanation will appear here")
+      val insertButton = new Button("Insert")
+      val clearButton = new Button("Clear")
+      val showInorderButton = new Button("Show Inorder")
+      val showPreorderButton = new Button("Show Preorder")
+      val showPostorderButton = new Button("Show Postorder")
+      val resultLabel = new Label("Enter up to 7 numbers separated by spaces and click 'Insert'")
 
-      var numbers: Array[Int] = Array()
-      var traversalResult: List[Int] = List()
+
+      def insert(root: TreeNode, value: Int): TreeNode = {
+        if (root == null) new TreeNode(value)
+        else {
+          if (value < root.value) root.left = insert(root.left, value)
+          else if (value > root.value) root.right = insert(root.right, value)
+          root
+        }
+      }
+
+      def inorderTraversal(root: TreeNode): List[Int] = {
+        if (root == null) Nil
+        else inorderTraversal(root.left) ++ List(root.value) ++ inorderTraversal(root.right)
+      }
+
+      def preorderTraversal(root: TreeNode): List[Int] = {
+        if (root == null) Nil
+        else List(root.value) ++ preorderTraversal(root.left) ++ preorderTraversal(root.right)
+      }
+
+      def postorderTraversal(root: TreeNode): List[Int] = {
+        if (root == null) Nil
+        else postorderTraversal(root.left) ++ postorderTraversal(root.right) ++ List(root.value)
+      }
+
+      def countNodes(root: TreeNode): Int = {
+        if (root == null) 0
+        else 1 + countNodes(root.left) + countNodes(root.right)
+      }
+
+      def treeDepth(root: TreeNode): Int = {
+        if (root == null) 0
+        else 1 + math.max(treeDepth(root.left), treeDepth(root.right))
+      }
+
+      def drawTree(g: Graphics2D, node: TreeNode, x: Int, y: Int, hGap: Int): Unit = {
+        if (node != null) {
+          g.setColor(new Color(100, 149, 237))
+          g.fillOval(x - 15, y - 15, 30, 30)
+          g.setColor(Color.BLACK)
+          g.drawOval(x - 15, y - 15, 30, 30)
+          g.drawString(node.value.toString, x - 7, y + 5)
+
+          if (node.left != null) {
+            g.drawLine(x - 10, y + 10, x - hGap + 10, y + 50)
+            drawTree(g, node.left, x - hGap, y + 60, hGap / 2)
+          }
+          if (node.right != null) {
+            g.drawLine(x + 10, y + 10, x + hGap - 10, y + 50)
+            drawTree(g, node.right, x + hGap, y + 60, hGap / 2)
+          }
+        }
+      }
+
+      val treePanel = new Panel {
+        override def preferredSize: Dimension = {
+          val depth = treeDepth(bst)
+          val width = math.pow(2, depth).toInt * 80 // Adjust width based on depth
+          new Dimension(width, depth * 80) // Adjust height based on depth
+        }
+
+        override def paintComponent(g: Graphics2D): Unit = {
+          super.paintComponent(g)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+          drawTree(g, bst, size.width / 2, 30, size.width / 4)
+        }
+      }
+
+      def showTraversal(traversalType: String, traversal: List[Int]): Unit = {
+        if (traversal.isEmpty) {
+          Dialog.showMessage(contents.head, "The BST is empty", s"$traversalType Traversal", Dialog.Message.Info)
+        } else {
+          val traversalWithPositions = traversal.zipWithIndex.map { case (value, index) => s"${index + 1}: $value" }
+          val message = s"$traversalType Traversal:\n${traversalWithPositions.mkString("\n")}"
+          Dialog.showMessage(contents.head, message, s"$traversalType Traversal", Dialog.Message.Info)
+        }
+      }
 
       contents = new BorderPanel {
-        layout(new GridPanel(6, 1) {
-          contents += new Label("Enter up to 15 numbers separated by spaces:")
+        layout(new GridPanel(3, 1) {
+          contents += new Label("Enter up to 7 numbers separated by spaces:")
           contents += inputField
-          contents += traverseButton
+          contents += new FlowPanel(insertButton, clearButton)
+          contents += new FlowPanel(showInorderButton, showPreorderButton, showPostorderButton)
+          contents += treePanel
           contents += resultLabel
-          contents += explanationLabel
         }) = BorderPanel.Position.Center
         layout(backButton) = BorderPanel.Position.South
       }
 
-      listenTo(traverseButton)
+      listenTo(insertButton, clearButton, showInorderButton, showPreorderButton, showPostorderButton)
       reactions += {
-        case ButtonClicked(`traverseButton`) =>
+        case ButtonClicked(`insertButton`) =>
           try {
-            numbers = inputField.text.split(" ").map(_.trim.toInt).take(15)
-            if (numbers.length > 15) {
-              resultLabel.text = "Only the first 15 numbers were used."
-            } else {
-              resultLabel.text = s"Processing ${numbers.length} numbers."
+            val numbers = inputField.text.split(" ").map(_.trim.toInt).take(7)
+            bst = null
+            for (num <- numbers) {
+              if (countNodes(bst) < 7) {
+                bst = insert(bst, num)
+              }
             }
-            val root = buildTree(numbers)
-            traversalResult = inOrderTraversal(root)
-            explanationLabel.text = s"In-Order Traversal Result: ${traversalResult.mkString(", ")}"
-            drawTree(root)
+            if (numbers.length > 7) {
+              resultLabel.text = "Only the first 7 numbers were used."
+            } else {
+              resultLabel.text = s"Inserted ${numbers.length} numbers into the BST."
+            }
+            treePanel.revalidate() // Ensure the panel revalidates to update the size
+            treePanel.repaint()
           } catch {
             case _: NumberFormatException =>
               resultLabel.text = "Invalid input. Please enter valid integers separated by spaces."
           }
-      }
-
-      def buildTree(arr: Array[Int]): TreeNode = {
-        var root: TreeNode = null
-        for (num <- arr) {
-          root = insert(root, num)
-        }
-        root
-      }
-
-      def insert(node: TreeNode, value: Int): TreeNode = {
-        if (node == null) {
-          new TreeNode(value)
-        } else {
-          if (value < node.value) {
-            node.left = insert(node.left, value)
-          } else {
-            node.right = insert(node.right, value)
-          }
-          node
-        }
-      }
-
-      def inOrderTraversal(node: TreeNode): List[Int] = {
-        if (node == null) {
-          List()
-        } else {
-          inOrderTraversal(node.left) ++ List(node.value) ++ inOrderTraversal(node.right)
-        }
-      }
-
-      def drawTree(root: TreeNode): Unit = {
-        val treePanel = new Panel {
-          preferredSize = new Dimension(800, 600)
-
-          override def paintComponent(g: Graphics2D): Unit = {
-            super.paintComponent(g)
-            if (root != null) {
-              drawNode(g, root, 400, 30, 200)
-            }
-          }
-
-          def drawNode(g: Graphics2D, node: TreeNode, x: Int, y: Int, offset: Int): Unit = {
-            g.drawOval(x - 15, y - 15, 30, 30)
-            g.drawString(node.value.toString, x - 5, y + 5)
-            if (node.left != null) {
-              g.drawLine(x, y, x - offset, y + 50)
-              drawNode(g, node.left, x - offset, y + 50, offset / 2)
-            }
-            if (node.right != null) {
-              g.drawLine(x, y, x + offset, y + 50)
-              drawNode(g, node.right, x + offset, y + 50, offset / 2)
-            }
-          }
-        }
-        contents = new BorderPanel {
-          layout(new BorderPanel {
-            layout(treePanel) = BorderPanel.Position.Center
-          }) = BorderPanel.Position.Center
-          layout(backButton) = BorderPanel.Position.South
-        }
-        revalidate()
+        case ButtonClicked(`clearButton`) =>
+          bst = null
+          inputField.text = ""
+          resultLabel.text = "BST cleared"
+          treePanel.revalidate() // Ensure the panel revalidates to update the size
+          treePanel.repaint()
+        case ButtonClicked(`showInorderButton`) =>
+          showTraversal("Inorder", inorderTraversal(bst))
+        case ButtonClicked(`showPreorderButton`) =>
+          showTraversal("Preorder", preorderTraversal(bst))
+        case ButtonClicked(`showPostorderButton`) =>
+          showTraversal("Postorder", postorderTraversal(bst))
       }
 
       revalidate()
     }
-
-    class TreeNode(var value: Int) {
-      var left: TreeNode = null
-      var right: TreeNode = null
-    }
-
-
-
-
-
-    // Button actions
-    listenTo(normalCalcButton, dataStructButton, graphVisualizationButton, backButton)
-    listenTo(buttons: _*)
-
-    reactions += {
-      case ButtonClicked(`normalCalcButton`) =>
-        showCalculator()
-
-      case ButtonClicked(`dataStructButton`) =>
-        showDataStructuresAndAlgorithmsMenu()
-
-      case ButtonClicked(`graphVisualizationButton`) =>
-        showGraphVisualizationMenu()
-
-      case ButtonClicked(`backButton`) =>
-        showMainMenu()
-
-      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
-        if (isResultShown) {
-          clearCalculator()
-        }
-        currentNumber += b.text
-        displayText += b.text
-        display.text = displayText
-        isResultShown = false
-
-      case ButtonClicked(b) if "+-*/".contains(b.text) =>
-        if (isResultShown) {
-          previousNumber = currentNumber
-          displayText = currentNumber
-          isResultShown = false
-        }
-        if (operator.isEmpty) {
-          operator = b.text
-          previousNumber = currentNumber
-          currentNumber = ""
-          displayText += s" ${b.text} "
-          display.text = displayText
-        } else {
-          computeResult()
-          operator = b.text
-          displayText += s" ${b.text} "
-          display.text = displayText
-        }
-
-      case ButtonClicked(b) if b.text == "=" =>
-        computeResult()
-
-      case ButtonClicked(b) if b.text == "C" =>
-        clearCalculator()
-    }
-
-    def computeResult(): Unit = {
-      if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
-        val result = operator match {
-          case "+" => previousNumber.toDouble + currentNumber.toDouble
-          case "-" => previousNumber.toDouble - currentNumber.toDouble
-          case "*" => previousNumber.toDouble * currentNumber.toDouble
-          case "/" =>
-            if (currentNumber.toDouble == 0) {
-              Dialog.showMessage(top, "Cannot divide by zero!", title = "Error")
-              0.0
-            } else {
-              previousNumber.toDouble / currentNumber.toDouble
-            }
-        }
-        displayText += s" = ${result}"
-        display.text = displayText
-        currentNumber = result.toString
-        previousNumber = ""
-        operator = ""
-        isResultShown = true
-      }
-    }
-
-    def clearCalculator(): Unit = {
-      currentNumber = ""
-      previousNumber = ""
-      operator = ""
-      displayText = ""
-      display.text = ""
-      isResultShown = false
-    }
-
-    // Initial screen
-    contents = mainPanel
 
   }
 }

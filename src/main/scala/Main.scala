@@ -1367,3 +1367,36 @@ object CalculatorApp {
       new CalculatorUI(calculator).main(args)
     }
   }
+
+
+/*references
+https://github.com/suliatis/scala-calculator
+https://otfried.org/scala/index_30.html
+https://github.com/ggsoft/guicalc
+https://stackoverflow.com/questions/21734961/scala-gui-event-handling
+https://stackoverflow.com/questions/1570175/scala-and-swing-gui-applications
+https://stackoverflow.com/questions/30769983/making-a-very-basic-binary-tree-in-scala
+https://www.geeksforgeeks.org/class-and-object-in-scala/?ref=lbp
+https://www.geeksforgeeks.org/scala-this-keyword/?ref=lbp
+https://www.geeksforgeeks.org/packages-in-scala/?ref=lbp
+https://stackoverflow.com/questions/14226252/scala-code-bubble-sort-for-loop
+https://www.educative.io/answers/how-to-clone-an-array-in-scala
+https://stackoverflow.com/questions/10406064/insertion-sort-implementation-in-scala
+https://stackoverflow.com/questions/1672074/selection-sort-in-functional-scala
+https://alvinalexander.com/scala/how-to-sort-scala-collections-sortwith-sorted-ordered-ordering/
+https://gist.github.com/Lytol/225870
+https://www.geeksforgeeks.org/shell-sort/
+https://stackoverflow.com/questions/1131925/how-do-i-sort-an-array-in-scala
+https://www.youtube.com/watch?v=x6eDiEoIqns
+https://stackoverflow.com/questions/10321252/mergesort-in-scala
+https://dzone.com/articles/how-could-scala-do-merge-sort
+https://codereview.stackexchange.com/questions/21575/merge-sort-in-scala
+https://stackoverflow.com/questions/12772964/binary-tree-traversal-in-scala
+https://www.geeksforgeeks.org/pre-order-post-order-and-in-order-traversal-of-a-binary-tree-in-one-traversal-using-recursion/
+https://www.freecodecamp.org/news/binary-search-tree-traversal-inorder-preorder-post-order-for-bst/
+https://www.youtube.com/watch?v=yUVpaSnzETo
+https://stackoverflow.com/questions/36342456/scala-swing-when-dialog-accesses-parent-parent-content-clears
+https://github.com/scala/scala-swing/blob/work/docs/SIP-8.md
+https://otfried.org/scala/drawing.html
+
+ */

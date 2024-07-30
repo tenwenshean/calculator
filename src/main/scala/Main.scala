@@ -1,12 +1,8 @@
 import scala.swing._
 import scala.swing.event._
 import java.awt.{Color, Font, Graphics2D, RenderingHints}
-import scala.swing.MenuBar.NoMenuBar.{contents, revalidate}
+import scala.swing.MenuBar.NoMenuBar.revalidate
 
-class TreeNode(var value: Int) {
-  var left: TreeNode = null
-  var right: TreeNode = null
-}
 
 abstract class Calculator {
   def calculate(a: Double, b: Double, operator: String): Double
@@ -26,8 +22,15 @@ class BasicCalculator extends Calculator {
   }
 }
 
+class CalculatorUI(calculator: Calculator) extends SimpleSwingApplication {
+  private var currentNumber: String = ""
+  private var previousNumber: String = ""
+  private var operator: String = ""
+  private var displayText: String = ""
+  private var isResultShown: Boolean = false
 
-object CalculatorApp extends SimpleSwingApplication {
+  val dataStructuresAndAlgorithms = new DataStructuresAndAlgorithms()
+  val sorting = new dataStructuresAndAlgorithms.Sorting()
 
   def top = new MainFrame {
     title = "Scala Calculator"
@@ -57,12 +60,6 @@ object CalculatorApp extends SimpleSwingApplication {
       "0", ".", "=", "+",
       "C"
     ).map(new Button(_))
-
-    var currentNumber: String = ""
-    var previousNumber: String = ""
-    var operator: String = ""
-    var displayText: String = ""
-    var isResultShown: Boolean = false
 
     val buttonPanel = new GridPanel(5, 4) {
       buttons.foreach(contents += _)
@@ -105,7 +102,7 @@ object CalculatorApp extends SimpleSwingApplication {
       revalidate()
     }
 
-    def computeResult(calculator: Calculator): Unit = {
+    def computeResult(): Unit = {
       if (previousNumber.nonEmpty && currentNumber.nonEmpty && operator.nonEmpty) {
         try {
           val result = calculator.calculate(previousNumber.toDouble, currentNumber.toDouble, operator)
@@ -128,6 +125,58 @@ object CalculatorApp extends SimpleSwingApplication {
       operator = ""
       display.text = displayText
       isResultShown = false
+    }
+
+    // Initial screen
+    contents = mainPanel
+
+    // Button actions
+    listenTo(normalCalcButton, dataStructButton, backButton)
+    listenTo(buttons: _*)
+
+    reactions += {
+      case ButtonClicked(`normalCalcButton`) =>
+        showCalculator()
+
+      case ButtonClicked(`dataStructButton`) =>
+        showDataStructuresAndAlgorithmsMenu()
+
+      case ButtonClicked(`backButton`) =>
+        showMainMenu()
+
+      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
+        if (isResultShown) {
+          clearCalculator()
+        }
+        currentNumber += b.text
+        displayText += b.text
+        display.text = displayText
+        isResultShown = false
+
+      case ButtonClicked(b) if "+-*/".contains(b.text) =>
+        if (isResultShown) {
+          previousNumber = currentNumber
+          displayText = currentNumber
+          isResultShown = false
+        }
+        if (operator.isEmpty) {
+          operator = b.text
+          previousNumber = currentNumber
+          currentNumber = ""
+          displayText += s" ${b.text} "
+          display.text = displayText
+        } else {
+          computeResult()
+          operator = b.text
+          displayText += s" ${b.text} "
+          display.text = displayText
+        }
+
+      case ButtonClicked(b) if b.text == "=" =>
+        computeResult()
+
+      case ButtonClicked(b) if b.text == "C" =>
+        clearCalculator()
     }
 
     def showDataStructuresAndAlgorithmsMenu(): Unit = {
@@ -153,8 +202,6 @@ object CalculatorApp extends SimpleSwingApplication {
 
       revalidate()
     }
-
-    // Implement the Sorting, DataStructures, and BST Menus as needed
     def showSortingMenu(): Unit = {
       val bubbleSortButton = new Button("Bubble Sort")    // button for bubble sort
       val selectionSortButton = new Button("Selection Sort") // button for selection sort
@@ -187,6 +234,9 @@ object CalculatorApp extends SimpleSwingApplication {
       revalidate()
     }
 
+
+    //UI FOR BUBBLE SORT
+
     def showBubbleSort(): Unit = {
       val inputField = new TextField {
         columns = 30
@@ -200,25 +250,6 @@ object CalculatorApp extends SimpleSwingApplication {
       var numbers: Array[Int] = Array()
       var sortingSteps: List[(Array[Int], String)] = List() // Now includes explanations
       var currentStep = 0
-
-      def bubbleSort(arr: Array[Int]): List[(Array[Int], String)] = {
-        var steps = List((arr.clone(), "Initial array"))
-        val n = arr.length
-        for (i <- 0 until n - 1) {
-          for (j <- 0 until n - i - 1) {
-            if (arr(j) > arr(j + 1)) {
-              val temp = arr(j)
-              arr(j) = arr(j + 1)
-              arr(j + 1) = temp
-              steps = (arr.clone(), s"Swapped ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}") :: steps
-            } else {
-              steps = (arr.clone(), s"Compared ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}, no swap needed") :: steps
-            }
-          }
-          steps = (arr.clone(), s"Completed pass ${i + 1}. Largest unsorted element (${arr(n - i - 1)}) is now in its correct position.") :: steps
-        }
-        steps.reverse
-      }
 
       val chart = new Panel {
         preferredSize = new Dimension(580, 400)
@@ -297,7 +328,7 @@ object CalculatorApp extends SimpleSwingApplication {
             } else {
               resultLabel.text = s"Sorting ${numbers.length} numbers."
             }
-            sortingSteps = bubbleSort(numbers)
+            sortingSteps = sorting.bubbleSort(numbers)
             currentStep = 0
             resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
             explanationLabel.text = sortingSteps(currentStep)._2
@@ -324,6 +355,11 @@ object CalculatorApp extends SimpleSwingApplication {
 
       revalidate()
     }
+
+
+
+    //UI FOR SELECTION SORT
+
     def showSelectionSort(): Unit = {
       val inputField = new TextField { columns = 30 }
       val sortButton = new Button("Start Selection Sort")
@@ -335,26 +371,7 @@ object CalculatorApp extends SimpleSwingApplication {
       var sortingSteps: List[(Array[Int], String)] = List()
       var currentStep = 0
 
-      def selectionSort(arr: Array[Int]): List[(Array[Int], String)] = {
-        var steps = List((arr.clone(), "Initial array"))
-        val n = arr.length
-        for (i <- 0 until n - 1) {
-          var minIndex = i
-          for (j <- i + 1 until n) {
-            if (arr(j) < arr(minIndex)) {
-              minIndex = j
-            }
-          }
-          if (minIndex != i) {
-            val temp = arr(i)
-            arr(i) = arr(minIndex)
-            arr(minIndex) = temp
-            steps = (arr.clone(), s"Swapped ${arr(i)} and ${arr(minIndex)} at positions $i and $minIndex") :: steps
-          }
-          steps = (arr.clone(), s"Completed pass ${i + 1}") :: steps
-        }
-        steps.reverse
-      }
+
 
       val chart = new Panel {
         preferredSize = new Dimension(580, 400)
@@ -420,7 +437,7 @@ object CalculatorApp extends SimpleSwingApplication {
               resultLabel.text = "Only the first 20 numbers were used."
             } else {
               resultLabel.text = s"Sorting ${numbers.length} numbers."
-              sortingSteps = selectionSort(numbers)
+              sortingSteps = sorting.selectionSort(numbers)
               currentStep = 0
               resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
               explanationLabel.text = sortingSteps(currentStep)._2
@@ -447,6 +464,9 @@ object CalculatorApp extends SimpleSwingApplication {
           }
       }
     }
+
+
+    //UI FOR INSERTION SORT
 
     def showInsertionSort(): Unit = {
       val inputField = new TextField { columns = 30 }
@@ -459,23 +479,6 @@ object CalculatorApp extends SimpleSwingApplication {
       var sortingSteps: List[(Array[Int], String)] = List()
       var currentStep = 0
 
-      def insertionSort(arr: Array[Int]): List[(Array[Int], String)] = {
-        var steps = List((arr.clone(), "Initial array"))
-        val n = arr.length
-        for (i <- 1 until n) {
-          val key = arr(i)
-          var j = i - 1
-          while (j >= 0 && arr(j) > key) {
-            arr(j + 1) = arr(j)
-            steps = (arr.clone(), s"Moved ${arr(j)} from position $j to position ${j + 1}") :: steps
-            j -= 1
-          }
-          arr(j + 1) = key
-          steps = (arr.clone(), s"Inserted ${key} at position ${j + 1}") :: steps
-        }
-        steps.reverse
-      }
-
       val chart = new Panel {
         preferredSize = new Dimension(580, 400)
 
@@ -540,7 +543,7 @@ object CalculatorApp extends SimpleSwingApplication {
               resultLabel.text = "Only the first 20 numbers were used."
             } else {
               resultLabel.text = s"Sorting ${numbers.length} numbers."
-              sortingSteps = insertionSort(numbers)
+              sortingSteps = sorting.insertionSort(numbers)
               currentStep = 0
               resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
               explanationLabel.text = sortingSteps(currentStep)._2
@@ -567,6 +570,8 @@ object CalculatorApp extends SimpleSwingApplication {
           }
       }
     }
+
+    //UI FOR SHELLSORT
 
     def showShellSort(): Unit = {
       val inputField = new TextField { columns = 30 }
@@ -579,29 +584,6 @@ object CalculatorApp extends SimpleSwingApplication {
       var sortingSteps: List[(Array[Int], String)] = List()
       var currentStep = 0
 
-      def shellSort(arr: Array[Int]): List[(Array[Int], String)] = {
-        var steps = List((arr.clone(), "Initial array"))
-        val n = arr.length
-        var gap = n / 2
-
-        while (gap > 0) {
-          for (i <- gap until n) {
-            val temp = arr(i)
-            var j = i
-            while (j >= gap && arr(j - gap) > temp) {
-              arr(j) = arr(j - gap)
-              steps = (arr.clone(), s"Moved ${arr(j - gap)} from position ${j - gap} to position $j with gap $gap") :: steps
-              j -= gap
-            }
-            arr(j) = temp
-            steps = (arr.clone(), s"Inserted ${temp} at position $j") :: steps
-          }
-          steps = (arr.clone(), s"Reduced gap to ${gap / 2}") :: steps
-          gap /= 2
-        }
-        steps.reverse
-      }
-
       val chart = new Panel {
         preferredSize = new Dimension(580, 400)
 
@@ -666,7 +648,7 @@ object CalculatorApp extends SimpleSwingApplication {
               resultLabel.text = "Only the first 20 numbers were used."
             } else {
               resultLabel.text = s"Sorting ${numbers.length} numbers."
-              sortingSteps = shellSort(numbers)
+              sortingSteps = sorting.shellSort(numbers)
               currentStep = 0
               resultLabel.text += s" Step ${currentStep + 1} of ${sortingSteps.length}"
               explanationLabel.text = sortingSteps(currentStep)._2
@@ -694,6 +676,8 @@ object CalculatorApp extends SimpleSwingApplication {
       }
     }
 
+    //UI FOR MERGESORT
+
     def showMergeSort(): Unit = {
       val inputField = new TextField { columns = 30 }
       val sortButton = new Button("Start Merge Sort")
@@ -705,52 +689,6 @@ object CalculatorApp extends SimpleSwingApplication {
       var numbers: Array[Int] = Array()
       var sortingSteps: List[(Array[Int], String)] = List()
       var currentStep = 0
-
-      def mergeSort(arr: Array[Int]): List[(Array[Int], String)] = {
-        def merge(left: Array[Int], right: Array[Int]): (Array[Int], String) = {
-          var result = Array[Int]()
-          var i = 0
-          var j = 0
-
-          while (i < left.length && j < right.length) {
-            if (left(i) <= right(j)) {
-              result :+= left(i)
-              i += 1
-            } else {
-              result :+= right(j)
-              j += 1
-            }
-          }
-
-          result ++= left.drop(i)
-          result ++= right.drop(j)
-          (result, s"Merged ${left.mkString(", ")} and ${right.mkString(", ")}")
-        }
-
-        def sort(arr: Array[Int]): List[(Array[Int], String)] = {
-          if (arr.length <= 1) {
-            List((arr.clone(), s"Single element or empty array: ${arr.mkString(", ")}"))
-          } else {
-            val mid = arr.length / 2
-            val left = arr.take(mid)
-            val right = arr.drop(mid)
-            val leftSteps = sort(left)
-            val rightSteps = sort(right)
-            val (merged, mergeExplanation) = merge(leftSteps.last._1, rightSteps.last._1)
-
-            val combinedSteps = leftSteps.dropRight(1) ++ rightSteps.dropRight(1)
-            val sortedLeft = leftSteps.last._1
-            val sortedRight = rightSteps.last._1
-            val partialSort = sortedLeft ++ sortedRight
-
-            combinedSteps :+
-              (partialSort, s"Sorted left (${sortedLeft.mkString(", ")}) and right (${sortedRight.mkString(", ")})") :+
-              (merged, mergeExplanation)
-          }
-        }
-
-        List((arr.clone(), "Initial unsorted array")) ++ sort(arr)
-      }
 
       val chart = new Panel {
         preferredSize = new Dimension(580, 400)
@@ -812,8 +750,6 @@ object CalculatorApp extends SimpleSwingApplication {
         layout(backButton)  = BorderPanel.Position.South
       }
 
-
-
       listenTo(sortButton, previousButton, nextButton, clearButton)
       reactions += {
         case ButtonClicked(`sortButton`) =>
@@ -823,7 +759,7 @@ object CalculatorApp extends SimpleSwingApplication {
               resultLabel.text = "Only the first 8 numbers were used."
             } else {
               resultLabel.text = s"Sorting ${numbers.length} numbers."
-              sortingSteps = mergeSort(numbers)
+              sortingSteps = sorting.mergeSort(numbers)
               currentStep = 0
               updateVisualization()
             }
@@ -859,9 +795,6 @@ object CalculatorApp extends SimpleSwingApplication {
         chart.repaint()
       }
     }
-
-
-
     def showDataStructuresMenu(): Unit = {
       val stackButton = new Button("Stack Visualization")
       val queueButton = new Button("Queue Visualization")
@@ -1131,8 +1064,7 @@ object CalculatorApp extends SimpleSwingApplication {
       revalidate()
     }
 
-
-
+    //BST UI PART
 
     def showBSTMenu(): Unit = {
       var bst: TreeNode = null
@@ -1146,40 +1078,6 @@ object CalculatorApp extends SimpleSwingApplication {
       val showPostorderButton = new Button("Show Postorder")
       val resultLabel = new Label("Enter up to 7 numbers separated by spaces and click 'Insert'")
 
-
-      def insert(root: TreeNode, value: Int): TreeNode = {
-        if (root == null) new TreeNode(value)
-        else {
-          if (value < root.value) root.left = insert(root.left, value)
-          else if (value > root.value) root.right = insert(root.right, value)
-          root
-        }
-      }
-
-      def inorderTraversal(root: TreeNode): List[Int] = {
-        if (root == null) Nil
-        else inorderTraversal(root.left) ++ List(root.value) ++ inorderTraversal(root.right)
-      }
-
-      def preorderTraversal(root: TreeNode): List[Int] = {
-        if (root == null) Nil
-        else List(root.value) ++ preorderTraversal(root.left) ++ preorderTraversal(root.right)
-      }
-
-      def postorderTraversal(root: TreeNode): List[Int] = {
-        if (root == null) Nil
-        else postorderTraversal(root.left) ++ postorderTraversal(root.right) ++ List(root.value)
-      }
-
-      def countNodes(root: TreeNode): Int = {
-        if (root == null) 0
-        else 1 + countNodes(root.left) + countNodes(root.right)
-      }
-
-      def treeDepth(root: TreeNode): Int = {
-        if (root == null) 0
-        else 1 + math.max(treeDepth(root.left), treeDepth(root.right))
-      }
 
       def drawTree(g: Graphics2D, node: TreeNode, x: Int, y: Int, hGap: Int): Unit = {
         if (node != null) {
@@ -1202,7 +1100,7 @@ object CalculatorApp extends SimpleSwingApplication {
 
       val treePanel = new Panel {
         override def preferredSize: Dimension = {
-          val depth = treeDepth(bst)
+          val depth = sorting.treeDepth(bst)
           val width = math.pow(2, depth).toInt * 80 // Adjust width based on depth
           new Dimension(width, depth * 80) // Adjust height based on depth
         }
@@ -1243,8 +1141,8 @@ object CalculatorApp extends SimpleSwingApplication {
             val numbers = inputField.text.split(" ").map(_.trim.toInt).take(7)
             bst = null
             for (num <- numbers) {
-              if (countNodes(bst) < 7) {
-                bst = insert(bst, num)
+              if (sorting.countNodes(bst) < 7) {
+                bst = sorting.insert(bst, num)
               }
             }
             if (numbers.length > 7) {
@@ -1265,79 +1163,202 @@ object CalculatorApp extends SimpleSwingApplication {
           treePanel.revalidate() // Ensure the panel revalidates to update the size
           treePanel.repaint()
         case ButtonClicked(`showInorderButton`) =>
-          showTraversal("Inorder", inorderTraversal(bst))
+          showTraversal("Inorder", sorting.inorderTraversal(bst))
         case ButtonClicked(`showPreorderButton`) =>
-          showTraversal("Preorder", preorderTraversal(bst))
+          showTraversal("Preorder", sorting.preorderTraversal(bst))
         case ButtonClicked(`showPostorderButton`) =>
-          showTraversal("Postorder", postorderTraversal(bst))
+          showTraversal("Postorder", sorting.postorderTraversal(bst))
       }
 
       revalidate()
     }
 
-
-    // Initial screen
-    contents = mainPanel
-
-    // Button actions
-    listenTo(normalCalcButton, dataStructButton, backButton)
-    listenTo(buttons: _*)
-
-    reactions += {
-      case ButtonClicked(`normalCalcButton`) =>
-        showCalculator()
-
-      case ButtonClicked(`dataStructButton`) =>
-        showDataStructuresAndAlgorithmsMenu()
-
-      case ButtonClicked(`backButton`) =>
-        showMainMenu()
-
-      case ButtonClicked(b) if b.text.forall(_.isDigit) || b.text == "." =>
-        if (isResultShown) {
-          clearCalculator()
-        }
-        currentNumber += b.text
-        displayText += b.text
-        display.text = displayText
-        isResultShown = false
-
-      case ButtonClicked(b) if "+-*/".contains(b.text) =>
-        if (isResultShown) {
-          previousNumber = currentNumber
-          displayText = currentNumber
-          isResultShown = false
-        }
-        if (operator.isEmpty) {
-          operator = b.text
-          previousNumber = currentNumber
-          currentNumber = ""
-          displayText += s" ${b.text} "
-          display.text = displayText
-        } else {
-          computeResult(new BasicCalculator())
-          operator = b.text
-          displayText += s" ${b.text} "
-          display.text = displayText
-        }
-
-      case ButtonClicked(b) if b.text == "=" =>
-        computeResult(new BasicCalculator())
-
-      case ButtonClicked(b) if b.text == "C" =>
-        clearCalculator()
+    // Add button action listeners here
+    buttons.foreach { button =>
+      button.reactions += {
+        case ButtonClicked(`button`) =>
+        // Handle button clicks
+      }
     }
   }
 }
 
+class DataStructuresAndAlgorithms extends  {
+
+  class Sorting {
+    def bubbleSort(arr: Array[Int]): List[(Array[Int], String)] = {
+      var steps = List((arr.clone(), "Initial array"))
+      val n = arr.length
+      for (i <- 0 until n - 1) {
+        for (j <- 0 until n - i - 1) {
+          if (arr(j) > arr(j + 1)) {
+            val temp = arr(j)
+            arr(j) = arr(j + 1)
+            arr(j + 1) = temp
+            steps = (arr.clone(), s"Swapped ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}") :: steps
+          } else {
+            steps = (arr.clone(), s"Compared ${arr(j)} and ${arr(j + 1)} at positions $j and ${j + 1}, no swap needed") :: steps
+          }
+        }
+        steps = (arr.clone(), s"Completed pass ${i + 1}. Largest unsorted element (${arr(n - i - 1)}) is now in its correct position.") :: steps
+      }
+      steps.reverse
+    }
+
+    def selectionSort(arr: Array[Int]): List[(Array[Int], String)] = {
+      var steps = List((arr.clone(), "Initial array"))
+      val n = arr.length
+      for (i <- 0 until n - 1) {
+        var minIndex = i
+        for (j <- i + 1 until n) {
+          if (arr(j) < arr(minIndex)) {
+            minIndex = j
+          }
+        }
+        if (minIndex != i) {
+          val temp = arr(i)
+          arr(i) = arr(minIndex)
+          arr(minIndex) = temp
+          steps = (arr.clone(), s"Swapped ${arr(i)} and ${arr(minIndex)} at positions $i and $minIndex") :: steps
+        }
+        steps = (arr.clone(), s"Completed pass ${i + 1}") :: steps
+      }
+      steps.reverse
+    }
+
+    def insertionSort(arr: Array[Int]): List[(Array[Int], String)] = {
+      var steps = List((arr.clone(), "Initial array"))
+      val n = arr.length
+      for (i <- 1 until n) {
+        val key = arr(i)
+        var j = i - 1
+        while (j >= 0 && arr(j) > key) {
+          arr(j + 1) = arr(j)
+          steps = (arr.clone(), s"Moved ${arr(j)} from position $j to position ${j + 1}") :: steps
+          j -= 1
+        }
+        arr(j + 1) = key
+        steps = (arr.clone(), s"Inserted ${key} at position ${j + 1}") :: steps
+      }
+      steps.reverse
+    }
+
+    def shellSort(arr: Array[Int]): List[(Array[Int], String)] = {
+      var steps = List((arr.clone(), "Initial array"))
+      val n = arr.length
+      var gap = n / 2
+
+      while (gap > 0) {
+        for (i <- gap until n) {
+          val temp = arr(i)
+          var j = i
+          while (j >= gap && arr(j - gap) > temp) {
+            arr(j) = arr(j - gap)
+            steps = (arr.clone(), s"Moved ${arr(j - gap)} from position ${j - gap} to position $j with gap $gap") :: steps
+            j -= gap
+          }
+          arr(j) = temp
+          steps = (arr.clone(), s"Inserted ${temp} at position $j") :: steps
+        }
+        steps = (arr.clone(), s"Reduced gap to ${gap / 2}") :: steps
+        gap /= 2
+      }
+      steps.reverse
+    }
+
+    def mergeSort(arr: Array[Int]): List[(Array[Int], String)] = {
+      def merge(left: Array[Int], right: Array[Int]): (Array[Int], String) = {
+        var result = Array[Int]()
+        var i = 0
+        var j = 0
+
+        while (i < left.length && j < right.length) {
+          if (left(i) <= right(j)) {
+            result :+= left(i)
+            i += 1
+          } else {
+            result :+= right(j)
+            j += 1
+          }
+        }
+
+        result ++= left.drop(i)
+        result ++= right.drop(j)
+        (result, s"Merged ${left.mkString(", ")} and ${right.mkString(", ")}")
+      }
+
+      def sort(arr: Array[Int]): List[(Array[Int], String)] = {
+        if (arr.length <= 1) {
+          List((arr.clone(), s"Single element or empty array: ${arr.mkString(", ")}"))
+        } else {
+          val mid = arr.length / 2
+          val left = arr.take(mid)
+          val right = arr.drop(mid)
+          val leftSteps = sort(left)
+          val rightSteps = sort(right)
+          val (merged, mergeExplanation) = merge(leftSteps.last._1, rightSteps.last._1)
+
+          val combinedSteps = leftSteps.dropRight(1) ++ rightSteps.dropRight(1)
+          val sortedLeft = leftSteps.last._1
+          val sortedRight = rightSteps.last._1
+          val partialSort = sortedLeft ++ sortedRight
+
+          combinedSteps :+
+            (partialSort, s"Sorted left (${sortedLeft.mkString(", ")}) and right (${sortedRight.mkString(", ")})") :+
+            (merged, mergeExplanation)
+        }
+      }
+
+      List((arr.clone(), "Initial unsorted array")) ++ sort(arr)
+    }
+
+
+    def insert(root: TreeNode, value: Int): TreeNode = {
+      if (root == null) new TreeNode(value)
+      else {
+        if (value < root.value) root.left = insert(root.left, value)
+        else if (value > root.value) root.right = insert(root.right, value)
+        root
+      }
+    }
+
+    def inorderTraversal(root: TreeNode): List[Int] = {
+      if (root == null) Nil
+      else inorderTraversal(root.left) ++ List(root.value) ++ inorderTraversal(root.right)
+    }
+
+    def preorderTraversal(root: TreeNode): List[Int] = {
+      if (root == null) Nil
+      else List(root.value) ++ preorderTraversal(root.left) ++ preorderTraversal(root.right)
+    }
+
+    def postorderTraversal(root: TreeNode): List[Int] = {
+      if (root == null) Nil
+      else postorderTraversal(root.left) ++ postorderTraversal(root.right) ++ List(root.value)
+    }
+
+    def countNodes(root: TreeNode): Int = {
+      if (root == null) 0
+      else 1 + countNodes(root.left) + countNodes(root.right)
+    }
+
+    def treeDepth(root: TreeNode): Int = {
+      if (root == null) 0
+      else 1 + math.max(treeDepth(root.left), treeDepth(root.right))
+    }
 
 
 
+  }
+}
 
-
-
-
-
-
-
-
+class TreeNode(var value: Int) {
+  var left: TreeNode = null
+  var right: TreeNode = null
+}
+object CalculatorApp {
+  def main(args: Array[String]): Unit = {
+    val calculator = new BasicCalculator()
+    new CalculatorUI(calculator).main(args)
+  }
+}

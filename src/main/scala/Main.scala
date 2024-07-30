@@ -32,6 +32,8 @@ class CalculatorUI(calculator: Calculator) extends SimpleSwingApplication {
   val dataStructuresAndAlgorithms = new DataStructuresAndAlgorithms()
   val sorting = new dataStructuresAndAlgorithms.Sorting()
 
+  val travel = new Travel()
+
   def top = new MainFrame {
     title = "Scala Calculator"
     preferredSize = new Dimension(1000, 800)
@@ -1100,7 +1102,7 @@ class CalculatorUI(calculator: Calculator) extends SimpleSwingApplication {
 
       val treePanel = new Panel {
         override def preferredSize: Dimension = {
-          val depth = sorting.treeDepth(bst)
+          val depth = travel.treeDepth(bst)
           val width = math.pow(2, depth).toInt * 80 // Adjust width based on depth
           new Dimension(width, depth * 80) // Adjust height based on depth
         }
@@ -1141,7 +1143,7 @@ class CalculatorUI(calculator: Calculator) extends SimpleSwingApplication {
             val numbers = inputField.text.split(" ").map(_.trim.toInt).take(7)
             bst = null
             for (num <- numbers) {
-              if (sorting.countNodes(bst) < 7) {
+              if (travel.countNodes(bst) < 7) {
                 bst = sorting.insert(bst, num)
               }
             }
@@ -1163,11 +1165,11 @@ class CalculatorUI(calculator: Calculator) extends SimpleSwingApplication {
           treePanel.revalidate() // Ensure the panel revalidates to update the size
           treePanel.repaint()
         case ButtonClicked(`showInorderButton`) =>
-          showTraversal("Inorder", sorting.inorderTraversal(bst))
+          showTraversal("Inorder", travel.inorderTraversal(bst))
         case ButtonClicked(`showPreorderButton`) =>
-          showTraversal("Preorder", sorting.preorderTraversal(bst))
+          showTraversal("Preorder", travel.preorderTraversal(bst))
         case ButtonClicked(`showPostorderButton`) =>
-          showTraversal("Postorder", sorting.postorderTraversal(bst))
+          showTraversal("Postorder", travel.postorderTraversal(bst))
       }
 
       revalidate()
@@ -1322,43 +1324,46 @@ class DataStructuresAndAlgorithms extends  {
       }
     }
 
-    def inorderTraversal(root: TreeNode): List[Int] = {
-      if (root == null) Nil
-      else inorderTraversal(root.left) ++ List(root.value) ++ inorderTraversal(root.right)
-    }
-
-    def preorderTraversal(root: TreeNode): List[Int] = {
-      if (root == null) Nil
-      else List(root.value) ++ preorderTraversal(root.left) ++ preorderTraversal(root.right)
-    }
-
-    def postorderTraversal(root: TreeNode): List[Int] = {
-      if (root == null) Nil
-      else postorderTraversal(root.left) ++ postorderTraversal(root.right) ++ List(root.value)
-    }
-
-    def countNodes(root: TreeNode): Int = {
-      if (root == null) 0
-      else 1 + countNodes(root.left) + countNodes(root.right)
-    }
-
-    def treeDepth(root: TreeNode): Int = {
-      if (root == null) 0
-      else 1 + math.max(treeDepth(root.left), treeDepth(root.right))
-    }
-
-
-
   }
 }
 
 class TreeNode(var value: Int) {
   var left: TreeNode = null
   var right: TreeNode = null
+
 }
-object CalculatorApp {
-  def main(args: Array[String]): Unit = {
-    val calculator = new BasicCalculator()
-    new CalculatorUI(calculator).main(args)
+
+class Travel {
+
+  def inorderTraversal(root: TreeNode): List[Int] = {
+    if (root == null) Nil
+    else inorderTraversal(root.left) ++ List(root.value) ++ inorderTraversal(root.right)
+  }
+
+  def preorderTraversal(root: TreeNode): List[Int] = {
+    if (root == null) Nil
+    else List(root.value) ++ preorderTraversal(root.left) ++ preorderTraversal(root.right)
+  }
+
+  def postorderTraversal(root: TreeNode): List[Int] = {
+    if (root == null) Nil
+    else postorderTraversal(root.left) ++ postorderTraversal(root.right) ++ List(root.value)
+  }
+
+  def countNodes(root: TreeNode): Int = {
+    if (root == null) 0
+    else 1 + countNodes(root.left) + countNodes(root.right)
+  }
+
+  def treeDepth(root: TreeNode): Int = {
+    if (root == null) 0
+    else 1 + math.max(treeDepth(root.left), treeDepth(root.right))
   }
 }
+
+object CalculatorApp {
+    def main(args: Array[String]): Unit = {
+      val calculator = new BasicCalculator()
+      new CalculatorUI(calculator).main(args)
+    }
+  }
